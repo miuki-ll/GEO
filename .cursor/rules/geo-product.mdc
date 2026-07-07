@@ -1,0 +1,22 @@
+---
+description: GEO 多企业 SaaS 已定产品决策摘要
+alwaysApply: true
+---
+
+# GEO 产品摘要（PRD v3.1）
+
+## 锚点
+特定人群 × 真实场景 × 信息增量 × 信任 → 咨询/转化。详见 **PRD-v3.md**（产品总纲）。
+
+## 三舱 UX
+开店向导 → 方案包+草稿审 → 效果舱（2 次闸门）
+
+## Agent ToB（PRD §7.1 · 架构 §2.1.0）
+- **L1** LLM Gateway · **L2** jobs+LangGraph+ReAct · **L3 垂域=壁垒**（行业包+Skill+KB）
+- Skill ✅ MVP | Agentic RAG 仅分析子图 | 蒸馏 **V2+** §9.3
+
+## V2+ 越用越懂行（PRD §9.3）
+V2a 偏好画像 → V2b rerank → V2c 可选蒸馏；**学偏好不学事实**；人确认；租户隔离
+
+## 技术
+Vue3+TS + FastAPI + Pydantic v2 + PG + Celery + Faiss + OSS + Sentry/LangSmith

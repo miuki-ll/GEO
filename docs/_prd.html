@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>GEO PRD 技术版</title>
+<style>
+body{font-family:"Microsoft YaHei",sans-serif;font-size:11pt;line-height:1.6;margin:40px;color:#222}
+h1{font-size:22pt;border-bottom:2px solid #333;padding-bottom:8px}
+h2{font-size:14pt;margin-top:24px;color:#111}
+h3{font-size:12pt;margin-top:16px}
+.meta{color:#666;margin-bottom:20px}
+table{border-collapse:collapse;width:100%;margin:12px 0}
+th,td{border:1px solid #ccc;padding:8px;text-align:left}
+th{background:#f5f5f5}
+ul{margin:8px 0;padding-left:24px}
+</style>
+</head>
+<body>
+
+<h1>GEO 智能品牌平台 — 产品需求文档（技术版）</h1>
+<p class="meta">版本 V4.1 · 2026-07-04 · 读者：研发 / 架构 / 测试 · MVP 行业：生美</p>
+
+<h2>一、产品定义</h2>
+<p><strong>GEO（生成式引擎优化）</strong> = 让豆包 / DeepSeek / Kimi / 文心等 AI 引用、采信企业真实品牌信息。</p>
+<p>价值公式：内容价值 ≈ 信息增量 × 品牌信任度</p>
+<ul>
+<li><strong>做：</strong>知识库零幻觉、先选 AI 测信源、按顾客场景写内容、监测迭代</li>
+<li><strong>不做：</strong>软文铺量、保证第一、虚构品牌、刷好评</li>
+</ul>
+
+<h2>二、用户旅程（三舱 · 2 次确认）</h2>
+<table>
+<tr><th>舱</th><th>用户操作</th></tr>
+<tr><td>舱1 懂我</td><td>开店向导提交 → 开始分析</td></tr>
+<tr><td>舱2 定方案</td><td>方案包确认 → 草稿审通过</td></tr>
+<tr><td>舱3 出结果</td><td>发布 → 效果舱 → 策略建议</td></tr>
+</table>
+<p><strong>人闸门：</strong>① 方案包「确认并生成」　② 草稿「通过」</p>
+<p><strong>铁律：</strong>无事实不发布 · 条数 = 场景数（≤5）· 监测临界只出草案、人确认后迭代</p>
+
+<h2>三、系统管道</h2>
+<p>录入 → 信源诊断 → 痛点/词库 → 画像/竞品 → 方案包确认 → 生成 → 机器审 → 人工审 → 发布 → 监测 → 效果舱</p>
+
+<h3>方案包五区块</h3>
+<table>
+<tr><th>区块</th><th>内容</th></tr>
+<tr><td>A 画像</td><td>确认顾客画像与内容布局</td></tr>
+<tr><td>B 竞品</td><td>确认/编辑差异化</td></tr>
+<tr><td>C 场景</td><td>勾选 2～5 个顾客问题（scenario，最小生产单元）</td></tr>
+<tr><td>D 渠道</td><td>信源权重与各渠道承接场景数</td></tr>
+<tr><td>E 展开</td><td>词库（监测辅助）、知识库更新提示</td></tr>
+</table>
+
+<h2>四、核心规则</h2>
+<ul>
+<li><strong>Fact 可发布：</strong>店名/地址/电话、项目、案例、FAQ</li>
+<li><strong>Signal 不可发布：</strong>粘贴的聊天/评价</li>
+<li><strong>生成链：</strong>fact_refs → kb_fetch → LLM → fact_verify</li>
+<li><strong>薄库门槛：</strong>≥2 个项目且 ≥3 条 FAQ，否则禁用「确认并生成」</li>
+<li><strong>生产单元：</strong>1 场景 × 1 渠道 × 1 Skill</li>
+</ul>
+
+<h2>五、技术选型</h2>
+<table>
+<tr><th>层</th><th>选型</th></tr>
+<tr><td>前端</td><td>Vue3 + TypeScript + Element Plus</td></tr>
+<tr><td>后端</td><td>Python 3.11+ / FastAPI / Pydantic v2</td></tr>
+<tr><td>数据</td><td>PostgreSQL / Redis / Celery / Faiss / OSS</td></tr>
+<tr><td>Agent</td><td>jobs + LangGraph 子图 + ReAct Harness</td></tr>
+<tr><td>LLM</td><td>Gateway + 四引擎适配器</td></tr>
+<tr><td>可观测</td><td>Sentry + LangSmith + agent_traces</td></tr>
+</table>
+<p>正文 Skill 固定链 kb_fetch → LLM → fact_verify，无 ReAct。</p>
+
+<h2>六、MVP-A 首发范围</h2>
+<table>
+<tr><th>项</th><th>范围</th></tr>
+<tr><td>诊断</td><td>主攻 AI 全量；次攻可选</td></tr>
+<tr><td>内容</td><td>2 个场景（标准包 3 个）</td></tr>
+<tr><td>发布</td><td>托管页 AUTO + 1 渠道 SEMI 文案包</td></tr>
+<tr><td>监测</td><td>主攻 AI 一轮 + 已选场景进 Core 子集</td></tr>
+</table>
+
+<h2>七、关键接口</h2>
+<ul>
+<li>POST /onboarding/run</li>
+<li>GET /strategy-pack/draft · POST /strategy-pack/confirm</li>
+<li>GET /content-drafts · POST /content-drafts/bulk-approve</li>
+<li>GET /outcomes</li>
+</ul>
+
+<h2>八、验收要点</h2>
+<ul>
+<li>1 店全流程：向导 → 方案包 → FAQ + 1 渠道 → 托管页 → 监测 1 轮</li>
+<li>事实可追溯、禁词拦截、租户隔离、两次人审</li>
+<li>SEMI 文案包可用、跨租户访问返回 403</li>
+</ul>
+
+<h2>九、版本路线</h2>
+<ul>
+<li><strong>MVP：</strong>三舱 + 场景驱动 + kb_fetch + Core/Probe</li>
+<li><strong>V1.1：</strong>信任资产产线、ConsultLog 归因、全量场景监测</li>
+<li><strong>V2：</strong>B2B 行业包、adapt_engine 一源多形态</li>
+</ul>
+<p>完整 FR/AC 见：Desktop\GEO\v4\GEO-需求规格说明书.md</p>
+
+</body>
+</html>

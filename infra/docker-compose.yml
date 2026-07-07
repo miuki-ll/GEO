@@ -1,0 +1,141 @@
+version: '3.9'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: geo-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: geo
+      POSTGRES_PASSWORD: geo_password
+      POSTGRES_DB: geo_db
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/pgdata
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U geo -d geo_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - geo-net
+
+  redis:
+    image: redis:7-alpine
+    container_name: geo-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes --requirepass geo_redis_password
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "geo_redis_password", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - geo-net
+
+  backend:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+    container_name: geo-backend
+    restart: unless-stopped
+    env_file:
+      - ../backend/.env
+    environment:
+      - DATABASE_URL=postgresql+psycopg2://geo:geo_password@postgres:5432/geo_db
+      - REDIS_URL=redis://:geo_redis_password@redis:6379/0
+      - CELERY_BROKER_URL=redis://:geo_redis_password@redis:6379/1
+      - CELERY_RESULT_BACKEND=redis://:geo_redis_password@redis:6379/2
+    volumes:
+      - ../backend:/app
+      - backend_uploads:/app/uploads
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: >
+      sh -c "alembic upgrade head &&
+             uvicorn geo_core.main:app --host 0.0.0.0 --port 8000 --reload"
+    networks:
+      - geo-net
+
+  celery-worker:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+    container_name: geo-celery-worker
+    restart: unless-stopped
+    env_file:
+      - ../backend/.env
+    environment:
+      - DATABASE_URL=postgresql+psycopg2://geo:geo_password@postgres:5432/geo_db
+      - REDIS_URL=redis://:geo_redis_password@redis:6379/0
+      - CELERY_BROKER_URL=redis://:geo_redis_password@redis:6379/1
+      - CELERY_RESULT_BACKEND=redis://:geo_redis_password@redis:6379/2
+    volumes:
+      - ../backend:/app
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: celery -A geo_core.celery_app worker -l info -Q default,diagnosis,content,monitor
+    networks:
+      - geo-net
+
+  celery-beat:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+    container_name: geo-celery-beat
+    restart: unless-stopped
+    env_file:
+      - ../backend/.env
+    environment:
+      - DATABASE_URL=postgresql+psycopg2://geo:geo_password@postgres:5432/geo_db
+      - REDIS_URL=redis://:geo_redis_password@redis:6379/0
+      - CELERY_BROKER_URL=redis://:geo_redis_password@redis:6379/1
+      - CELERY_RESULT_BACKEND=redis://:geo_redis_password@redis:6379/2
+    volumes:
+      - ../backend:/app
+    depends_on:
+      redis:
+        condition: service_healthy
+    command: celery -A geo_core.celery_app beat -l info --scheduler celery.beat.PersistentScheduler --schedule /app/celerybeat-schedule.db
+    networks:
+      - geo-net
+
+  frontend:
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile
+    container_name: geo-frontend
+    restart: unless-stopped
+    volumes:
+      - ../frontend:/app
+      - /app/node_modules
+    ports:
+      - "5173:5173"
+    depends_on:
+      - backend
+    command: npm run dev -- --host
+    networks:
+      - geo-net
+
+volumes:
+  postgres_data:
+  redis_data:
+  backend_uploads:
+
+networks:
+  geo-net:
+    driver: bridge
