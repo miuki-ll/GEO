@@ -45,18 +45,18 @@ export interface StrategyPackDraft {
 }
 
 export function getDiagnosisPain() {
-  return request.get<any, ApiResponse<any[]>>('/api/v1/diagnosis/pain')
+  return request.get<any, ApiResponse<any[]>>('/api/v1/user/diagnosis/pain')
 }
 export function getDiagnosisPersona() {
-  return request.get<any, ApiResponse<PersonaData>>('/api/v1/diagnosis/persona')
+  return request.get<any, ApiResponse<PersonaData>>('/api/v1/user/diagnosis/persona')
 }
 export function getDiagnosisCompetitor() {
-  return request.get<any, ApiResponse<CompetitorItem[]>>('/api/v1/diagnosis/competitor')
+  return request.get<any, ApiResponse<CompetitorItem[]>>('/api/v1/user/diagnosis/competitor')
 }
 
 export function getStrategyPackDraft() {
-  return request.get<any, ApiResponse<StrategyPackDraft>>('/api/v1/strategy-pack/draft')
+  return request.get<any, ApiResponse<StrategyPackDraft>>('/api/v1/user/strategy-pack/draft')
 }
 export function confirmStrategyPack() {
-  return request.post<any, ApiResponse<StrategyPackDraft>>('/api/v1/strategy-pack/confirm')
+  return request.post<any, ApiResponse<StrategyPackDraft>>('/api/v1/user/strategy-pack/confirm')
 }

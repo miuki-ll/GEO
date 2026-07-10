@@ -4,21 +4,21 @@ import sys
 
 root = r"d:\GEO\backend"
 targets = [
-    "geo_core/schemas/business.py",
-    "geo_core/services/scenario_service.py",
-    "geo_core/services/strategy_service.py",
-    "geo_core/services/diagnosis_service.py",
-    "geo_core/services/content_service.py",
-    "geo_core/services/publish_service.py",
-    "geo_core/services/dashboard_service.py",
-    "geo_core/api/v1/onboarding.py",
-    "geo_core/api/v1/diagnosis.py",
-    "geo_core/api/v1/strategy_pack.py",
-    "geo_core/api/v1/content.py",
-    "geo_core/api/v1/publish.py",
-    "geo_core/api/v1/monitoring.py",
-    "geo_core/api/v1/outcomes.py",
-    "geo_core/api/v1/agent.py",
+    "app/schemas/business.py",
+    "app/services/scenario_service.py",
+    "app/services/strategy_service.py",
+    "app/services/diagnosis_service.py",
+    "app/services/content_service.py",
+    "app/services/publish_service.py",
+    "app/services/dashboard_service.py",
+    "app/api/v1/onboarding.py",
+    "app/api/v1/diagnosis.py",
+    "app/api/v1/strategy_pack.py",
+    "app/api/v1/content.py",
+    "app/api/v1/publish.py",
+    "app/api/v1/monitoring.py",
+    "app/api/v1/outcomes.py",
+    "app/api/v1/agent.py",
 ]
 
 problems = []

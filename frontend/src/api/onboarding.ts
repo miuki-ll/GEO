@@ -22,9 +22,9 @@ export interface OnboardingStatus {
 }
 
 export function runOnboarding(data: OnboardingRunRequest = {}) {
-  return request.post<any, ApiResponse<OnboardingStatus>>('/api/v1/onboarding/run', data)
+  return request.post<any, ApiResponse<OnboardingStatus>>('/api/v1/user/onboarding/run', data)
 }
 
 export function getOnboardingStatus(taskId: string) {
-  return request.get<any, ApiResponse<OnboardingStatus>>(`/api/v1/onboarding/status/${taskId}`)
+  return request.get<any, ApiResponse<OnboardingStatus>>(`/api/v1/user/onboarding/status/${taskId}`)
 }

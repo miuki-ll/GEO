@@ -8,9 +8,9 @@ from alembic import context
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
-from geo_core.core.config import settings
-from geo_core.core.db import Base
-from geo_core import models  # noqa: F401
+from app.core.config import settings
+from app.core.db import Base
+from app import models  # noqa: F401
 
 config = context.config
 if config.config_file_name is not None:
