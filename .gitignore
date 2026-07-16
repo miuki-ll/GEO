@@ -140,3 +140,10 @@ redis_data/
 *.tmp
 *.temp
 .cache/
+
+# --- 不同步给同事 / 不上 GitHub ---
+策略/
+资料/
+PRD沟通文档.md
+talentflow-ai-backend/
+.claude/
