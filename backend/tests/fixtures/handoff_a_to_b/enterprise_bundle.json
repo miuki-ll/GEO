@@ -1,0 +1,74 @@
+{
+  "enterprise": {
+    "id": 1,
+    "industry_pack": "beauty_local",
+    "target_engines": ["doubao", "deepseek"]
+  },
+  "diagnosis": {
+    "source_map": {
+      "rankings": [
+        { "domain": "dianping.com", "count": 12, "weight": 0.35 },
+        { "domain": "zhihu.com", "count": 8, "weight": 0.24 }
+      ],
+      "gaps": ["今日头条", "小红书"]
+    },
+    "competitor_analysis": [
+      {
+        "name": "XX美容连锁",
+        "type": "chain",
+        "strengths": ["品牌知名度"],
+        "weaknesses": ["客制化差"],
+        "differentiation": "本地化定制 + 1v1"
+      }
+    ],
+    "probe_prompts": ["静安寺附近皮肤管理推荐", "敏感肌能不能做皮肤管理"],
+    "brand_mention_rate": 0.05
+  },
+  "keywords": [
+    {
+      "keyword": "静安寺皮肤管理推荐",
+      "layer": "选型层",
+      "source": "LLM生成",
+      "lbs_tags": ["静安区", "静安寺商圈"]
+    },
+    {
+      "keyword": "敏感肌修护哪家不推销",
+      "layer": "痛点层",
+      "source": "手动",
+      "lbs_tags": ["静安区"]
+    },
+    {
+      "keyword": "换季泛红去做脸",
+      "layer": "场景层",
+      "source": "探针反推",
+      "lbs_tags": ["静安区"]
+    },
+    {
+      "keyword": "皮肤管理和医美区别",
+      "layer": "认知层",
+      "source": "SEO API",
+      "lbs_tags": []
+    }
+  ],
+  "kb_facts": [
+    {
+      "id": 1,
+      "title": "补水管理项目价格",
+      "content": "298-498 元/次",
+      "category": "price"
+    },
+    {
+      "id": 5,
+      "title": "门店 NAP",
+      "content": "静安区XX路88号 · 021-12345678",
+      "category": "nap"
+    },
+    {
+      "id": 8,
+      "title": "敏感肌可做说明",
+      "content": "敏感肌先做 VISIA 检测再护理",
+      "category": "service"
+    }
+  ],
+  "t0_ready": true
+}

@@ -36,11 +36,11 @@
 |----|-----|
 | **更新日期** | 2026-07-16 |
 | **当前周** | W1 |
-| **A 当前任务** | A0（底座）· fixture 未交付 |
-| **B 当前任务** | B0（可 MOCK 先行） |
-| **全局阻塞** | **B1 真接 WAIT_FOR A7+A8**；**G4 WAIT_FOR A7**；**fixture 未交付**（`handoff_a_to_b/`）；B5 AUTO WAIT_FOR A5；B4 禁词真接 WAIT_FOR A0 |
+| **A 当前任务** | A0（底座）· fixture 官方四文件未交付 |
+| **B 当前任务** | B0/B1/B2 MOCK 已实现待你前端手验 |
+| **全局阻塞** | **B1 真接 WAIT_FOR A7+A8**；**G4 WAIT_FOR A7**；官方 **A-fixture** 四文件未交付 |
 | **下一联调 GATE** | G1（信封+JWT）；G2/G4 暂不可绿 |
-| **备注** | 详见 B 手册 §3.1–§3.3 · **§11 测试**；SEMI/B2 可先做；Bx done 须 `tests: Bx pass` |
+| **备注** | 分支 `feat/b-track-b0-b2`：pytest b_track 7 passed；前端可看 `/strategy-pack` `/content/drafts`（demo 登录） |
 
 ---
 
@@ -80,9 +80,9 @@
 
 | ID | 任务 | 状态 | 开始日 | 完成日 | 阻塞原因（WAIT_FOR） | 备注 / 交付物 / 测试 |
 |----|------|------|--------|--------|----------------------|----------------------|
-| B0 | 方案包/草稿页骨架（fixture mock） | `todo` | | | 缺 fixture 时 `WAIT_FOR A-fixture` · MOCK_OK | 验收：T-B0-01～04 |
-| B1 | 方案包：persona/scenario/权重 0.6+0.4 | `todo` | | | 真接 `WAIT_FOR A7+A8`；另 A3/A0 · MOCK_OK | 验收：T-B1-01～06（真接加 R01/R02） |
-| B2 | strategy-pack confirm | `todo` | | | | 验收：T-B2-01～05 |
+| B0 | 方案包/草稿页骨架（fixture mock） | `doing` | 2026-07-16 | | MOCK_OK · 官方 A-fixture 未到 | tests: B0 pytest T-B0-03/04 pass；待手测 T-B0-01/02 |
+| B1 | 方案包：persona/scenario/权重 0.6+0.4 | `doing` | 2026-07-16 | | 真接 `WAIT_FOR A7+A8` | tests: B1 MOCK pytest pass；待手测 T-B1-05 |
+| B2 | strategy-pack confirm | `doing` | 2026-07-16 | | | tests: B2 契约单测 pass；全链路 confirm 需后端+JWT |
 | B3 | 内容工厂 + RAG 切片 | `todo` | | | 真接 `WAIT_FOR A2+A3` · MOCK_OK | 见手册 §11.4 |
 | B4 | 5 项机审 + 人闸门 + approval_log | `todo` | | | `WAIT_FOR A0` 禁词/合规 | 见手册 §11.4 |
 | B5 | 发布 AUTO + 小红书 SEMI | `todo` | | | 真发托管页 `WAIT_FOR A5` | SEMI 可先测；AUTO 另测 |

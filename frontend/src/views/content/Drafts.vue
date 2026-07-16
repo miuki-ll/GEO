@@ -2,96 +2,124 @@
   <div>
     <div class="page-header">
       <div>
-        <h2>📝 内容草稿工作台</h2>
-        <div class="subtitle">Scenario → Skill → Content · 机器审 + 人工审双闸门</div>
+        <h2>内容草稿工作台</h2>
+        <div class="subtitle">
+          草稿列表 · 机审标示 · 人闸门（B0 骨架）
+          <!-- TODO(WAIT_FOR: A-fixture) / TODO(WAIT_FOR: B3) 真 drafts API -->
+        </div>
       </div>
       <div>
-        <el-button @click="runProduce">🔬 触发生产 Agent</el-button>
-        <el-button type="success" :disabled="!selected.length" @click="bulkApprove">✅ 批量通过 ({{ selected.length }})</el-button>
+        <el-button @click="reload">刷新列表</el-button>
+        <el-button type="success" :disabled="!selected.length" @click="bulkApprove">
+          批量通过 ({{ selected.length }})
+        </el-button>
       </div>
     </div>
 
+    <el-alert
+      type="info"
+      show-icon
+      :closable="false"
+      style="margin-bottom: 16px"
+      :title="usingMock ? 'MOCK 草稿列表（B0）。真接 content API 后替换。' : '已加载 API 草稿'"
+    />
+
     <div class="page-card">
       <div style="display:flex; justify-content:space-between; margin-bottom:14px">
-        <el-filter-panel>
-          <el-radio-group v-model="status" size="default">
-            <el-radio-button label="all">全部</el-radio-button>
-            <el-radio-button label="pending">待审核</el-radio-button>
-            <el-radio-button label="approved">已通过</el-radio-button>
-            <el-radio-button label="rejected">已驳回</el-radio-button>
-          </el-radio-group>
-        </el-filter-panel>
-        <el-input placeholder="搜索标题" style="width: 240px" clearable />
+        <el-radio-group v-model="statusFilter" size="default">
+          <el-radio-button label="all">全部</el-radio-button>
+          <el-radio-button label="ready">待审 ready</el-radio-button>
+          <el-radio-button label="draft">draft</el-radio-button>
+        </el-radio-group>
+        <el-input v-model="keyword" placeholder="搜索标题" style="width: 240px" clearable />
       </div>
-      <el-table :data="drafts" border stripe @selection-change="selected = $event">
+      <el-table :data="filtered" border stripe @selection-change="selected = $event">
         <el-table-column type="selection" width="50" />
         <el-table-column prop="id" label="ID" width="60" />
         <el-table-column prop="title" label="标题" min-width="240" />
-        <el-table-column prop="channel" label="渠道" width="100">
-          <template #default="{ row }">
-            <el-tag size="small" :type="tagType(row.channel)">{{ row.channel }}</el-tag>
-          </template>
-        </el-table-column>
+        <el-table-column prop="channel" label="渠道" width="110" />
         <el-table-column prop="skill" label="Skill" width="100" />
-        <el-table-column prop="fact_ok" label="Fact校验" width="110">
-          <template #default="{ row }">
-            <el-tag v-if="row.fact_ok" size="small" type="success">通过</el-tag>
-            <el-tag v-else size="small" type="danger">未通过</el-tag>
-          </template>
+        <el-table-column label="fact_refs" width="120">
+          <template #default="{ row }">{{ (row.fact_refs || []).join(',') }}</template>
         </el-table-column>
-        <el-table-column prop="compliance_ok" label="合规校验" width="110">
-          <template #default="{ row }">
-            <el-tag v-if="row.compliance_ok" size="small" type="success">通过</el-tag>
-            <el-tag v-else size="small" type="danger">未通过</el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column prop="human_status" label="人工审核" width="120">
-          <template #default="{ row }">
-            <el-tag :type="humanTagType(row.human_status)" size="small">
-              {{ humanLabel(row.human_status) }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column label="操作" width="200" fixed="right">
+        <el-table-column prop="status" label="状态" width="100" />
+        <el-table-column label="操作" width="160" fixed="right">
           <template #default>
-            <el-button link type="primary" size="small">编辑</el-button>
+            <el-button link type="primary" size="small">预览</el-button>
             <el-button link type="success" size="small">通过</el-button>
-            <el-button link type="warning" size="small">驳回</el-button>
           </template>
         </el-table-column>
       </el-table>
+      <p v-if="!filtered.length" class="empty">暂无草稿（列表区已就绪，等待 B3 生成）</p>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import handoffMock from '@/mocks/handoff_a_to_b.json'
 
-const status = ref('all')
+const statusFilter = ref('all')
+const keyword = ref('')
 const selected = ref<any[]>([])
-const drafts = [
-  { id: 1, title: '【敏感肌必看】XX 美容院补水修护全流程', channel: 'xiaohongshu', skill: 'article', fact_ok: true, compliance_ok: true, human_status: 'pending' },
-  { id: 2, title: 'FAQ：敏感肌能做美容院项目吗？', channel: 'hosted', skill: 'faq', fact_ok: true, compliance_ok: true, human_status: 'approved' },
-  { id: 3, title: '2026 夏天油皮怎么选美容院项目', channel: 'zhihu', skill: 'article', fact_ok: false, compliance_ok: true, human_status: 'pending' },
-  { id: 4, title: '门店地址与预约方式（到店决策卡）', channel: 'hosted', skill: 'snippet', fact_ok: true, compliance_ok: false, human_status: 'rejected' },
-]
-function tagType(c: string) {
-  return { xiaohongshu: 'danger', zhihu: '', hosted: 'success', dianping: 'warning', douyin: 'info' }[c] || ''
+const usingMock = ref(true)
+const drafts = ref<any[]>([])
+
+function buildMockDrafts() {
+  const facts = (handoffMock.kb_facts || []).map((f: any) => f.id)
+  return [
+    {
+      id: 1,
+      title: '敏感肌能不能做皮肤管理？',
+      channel: 'hosted',
+      skill: 'faq',
+      fact_refs: facts.slice(0, 3),
+      status: 'ready',
+    },
+    {
+      id: 2,
+      title: '静安寺附近做脸哪家不推销（笔记体）',
+      channel: 'xiaohongshu',
+      skill: 'article',
+      fact_refs: facts.slice(0, 2),
+      status: 'ready',
+    },
+  ]
 }
-function humanTagType(s: string) {
-  return { pending: 'warning', approved: 'success', rejected: 'danger' }[s] || 'info'
+
+const filtered = computed(() => {
+  let rows = drafts.value
+  if (statusFilter.value !== 'all') {
+    rows = rows.filter((d) => d.status === statusFilter.value)
+  }
+  if (keyword.value.trim()) {
+    const q = keyword.value.trim()
+    rows = rows.filter((d) => String(d.title).includes(q))
+  }
+  return rows
+})
+
+function reload() {
+  // TODO(WAIT_FOR: B3) GET /content/drafts
+  drafts.value = buildMockDrafts()
+  usingMock.value = true
+  ElMessage.success('已刷新 MOCK 草稿列表')
 }
-function humanLabel(s: string) {
-  return { pending: '待审核', approved: '已通过', rejected: '已驳回' }[s] || s
-}
-function runProduce() {
-  ElMessage.success('S4 阶段实现：启动 GAP→PLAN→EXECUTE→机器审 子图')
-}
+
 function bulkApprove() {
-  ElMessageBox.confirm(`确认批量通过 ${selected.value.length} 篇草稿？`, '二次确认', { type: 'warning' })
-    .then(() => ElMessage.success('已提交（S4 阶段真实写入）'))
+  ElMessageBox.confirm(`确认批量通过 ${selected.value.length} 篇？`, '人闸门', { type: 'warning' })
+    .then(() => ElMessage.success('MOCK：已记录通过（B4 接 approval_log）'))
     .catch(() => {})
 }
+
+onMounted(reload)
 </script>
 
+<style scoped>
+.empty {
+  text-align: center;
+  color: #909399;
+  padding: 24px;
+}
+</style>
