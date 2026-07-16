@@ -1,9 +1,9 @@
 # GEO 开发进度表（双人同步）
 
-> **版本**：v1.1 | **日期**：2026-07-16  
+> **版本**：v1.2 | **日期**：2026-07-16  
 > **用途**：两人通过 **git 提交本文件** 同步进度；Agent / 人开工前先读此表。  
 > **任务定义与依赖**：见 [G-L3-双人任务拆分.md](G-L3-双人任务拆分.md)（WAIT_FOR / NOTIFY / GATE）  
-> **开发者 B 专用手册**：[G-L3-开发者B任务手册.md](G-L3-开发者B任务手册.md)（含 §3.1–§3.3 顺序与阻塞）  
+> **开发者 B 专用手册**：[G-L3-开发者B任务手册.md](G-L3-开发者B任务手册.md)（§3 顺序阻塞 · **§11 测试强制验收**）  
 > **实施细则**：见 [G-L3-实施清单.md](G-L3-实施清单.md)
 
 ---
@@ -18,15 +18,16 @@
 | **拉最新再改** | 改进度前先 `git pull`，减少合并冲突 |
 | **阻塞必填** | 状态为 `blocked` 时，`阻塞原因` 列必须写清 `WAIT_FOR: Ax/Bx` + 缺什么 |
 | **完成必填** | 状态为 `done` 时，填 `完成日`；若有 NOTIFY，在备注写「已通知对方」 |
+| **B 轨测试强制** | 开发者 B 标 `done` 前必须按 [G-L3-开发者B任务手册.md](G-L3-开发者B任务手册.md) **§11** 跑通对应用例；备注写 `tests: Bx pass`（或失败用例 ID）。**未测/失败不得 done** |
 
 ### 状态枚举（勿自创）
 
 | 值 | 含义 |
 |----|------|
 | `todo` | 未开始 |
-| `doing` | 进行中 |
-| `blocked` | 被对方或外部阻塞（须填阻塞原因） |
-| `done` | 已完成且可被对方依赖 |
+| `doing` | 进行中（含写测试中） |
+| `blocked` | 被对方或外部阻塞，或**测试失败待修**（须填阻塞原因） |
+| `done` | 已完成且可被对方依赖；**B 轨还须 §11 测试全 PASS** |
 | `skip` | MVP 明确不做（须备注原因） |
 
 ### 当前冲刺摘要（每次改进度时顺手更新）
@@ -39,7 +40,7 @@
 | **B 当前任务** | B0（可 MOCK 先行） |
 | **全局阻塞** | **B1 真接 WAIT_FOR A7+A8**；**G4 WAIT_FOR A7**；**fixture 未交付**（`handoff_a_to_b/`）；B5 AUTO WAIT_FOR A5；B4 禁词真接 WAIT_FOR A0 |
 | **下一联调 GATE** | G1（信封+JWT）；G2/G4 暂不可绿 |
-| **备注** | 详见 [G-L3-开发者B任务手册.md](G-L3-开发者B任务手册.md) §3.1–§3.3；SEMI/B2 可先做，勿谎报真接 done |
+| **备注** | 详见 B 手册 §3.1–§3.3 · **§11 测试**；SEMI/B2 可先做；Bx done 须 `tests: Bx pass` |
 
 ---
 
@@ -74,21 +75,22 @@
 
 ## 2. 开发者 B · 下游进度
 
-> 任务细节、I/O、WAIT_FOR 话术见 **[G-L3-开发者B任务手册.md](G-L3-开发者B任务手册.md)**。状态只在本表更新。
+> 任务细节、I/O、WAIT_FOR、**逐步测试**见 **[G-L3-开发者B任务手册.md](G-L3-开发者B任务手册.md)**（§11）。状态只在本表更新。  
+> **标 `done` 前：** 备注必须含 `tests: B<n> pass`；仅 MOCK 验收写 `tests: B<n> MOCK pass`。
 
-| ID | 任务 | 状态 | 开始日 | 完成日 | 阻塞原因（WAIT_FOR） | 备注 / 交付物 |
-|----|------|------|--------|--------|----------------------|---------------|
-| B0 | 方案包/草稿页骨架（fixture mock） | `todo` | | | 缺 fixture 时 `WAIT_FOR A-fixture` · MOCK_OK | |
-| B1 | 方案包：persona/scenario/权重 0.6+0.4 | `todo` | | | 真接 `WAIT_FOR A7+A8`；另 A3/A0 · MOCK_OK | |
-| B2 | strategy-pack confirm | `todo` | | | | |
-| B3 | 内容工厂 + RAG 切片 | `todo` | | | 真接 `WAIT_FOR A2+A3` · MOCK_OK | |
-| B4 | 5 项机审 + 人闸门 + approval_log | `todo` | | | `WAIT_FOR A0` 禁词/合规 | |
-| B5 | 发布 AUTO + 小红书 SEMI | `todo` | | | 真发托管页 `WAIT_FOR A5` | |
-| B6 | Core/Probe + T1 + T0/T1 Δ + Engine 联动 | `todo` | | | `WAIT_FOR A7`（T0）；验 AC-13 时 `WAIT_FOR A9` | |
-| B7 | 效果舱 Dashboard | `todo` | | | `WAIT_FOR A7`（T0 KPI） | |
-| B8 | 前端：方案包/草稿/发布/监测/效果舱 | `todo` | | | 真接继承上表 | |
+| ID | 任务 | 状态 | 开始日 | 完成日 | 阻塞原因（WAIT_FOR） | 备注 / 交付物 / 测试 |
+|----|------|------|--------|--------|----------------------|----------------------|
+| B0 | 方案包/草稿页骨架（fixture mock） | `todo` | | | 缺 fixture 时 `WAIT_FOR A-fixture` · MOCK_OK | 验收：T-B0-01～04 |
+| B1 | 方案包：persona/scenario/权重 0.6+0.4 | `todo` | | | 真接 `WAIT_FOR A7+A8`；另 A3/A0 · MOCK_OK | 验收：T-B1-01～06（真接加 R01/R02） |
+| B2 | strategy-pack confirm | `todo` | | | | 验收：T-B2-01～05 |
+| B3 | 内容工厂 + RAG 切片 | `todo` | | | 真接 `WAIT_FOR A2+A3` · MOCK_OK | 见手册 §11.4 |
+| B4 | 5 项机审 + 人闸门 + approval_log | `todo` | | | `WAIT_FOR A0` 禁词/合规 | 见手册 §11.4 |
+| B5 | 发布 AUTO + 小红书 SEMI | `todo` | | | 真发托管页 `WAIT_FOR A5` | SEMI 可先测；AUTO 另测 |
+| B6 | Core/Probe + T1 + T0/T1 Δ + Engine 联动 | `todo` | | | `WAIT_FOR A7`（T0）；验 AC-13 时 `WAIT_FOR A9` | 见手册 §11.4 |
+| B7 | 效果舱 Dashboard | `todo` | | | `WAIT_FOR A7`（T0 KPI） | 见手册 §11.4 |
+| B8 | 前端：方案包/草稿/发布/监测/效果舱 | `todo` | | | 真接继承上表 | 见手册 §11.2 |
 
-**B 过线**：勾选 scenario→机审→人闸门→AUTO+SEMI→效果舱见 Δ（详见 B 手册 §9）  
+**B 过线**：勾选 scenario→机审→人闸门→AUTO+SEMI→效果舱见 Δ（详见 B 手册 §9）；**相关 Bx §11 测试均 PASS**  
 **B 过线状态**：`todo`
 
 ---
@@ -157,9 +159,9 @@
 **Agent 规则：**
 
 - 开始某 `Ax`/`Bx` 前：读本表该行；若对方前置为非 `done` 且本任务有 `WAIT_FOR`，先提示对方，再决定 MOCK_OK 或暂停。
-- 将任务标为 `done` 前：对照 [G-L3-双人任务拆分.md](G-L3-双人任务拆分.md) 验收标准。
+- 将任务标为 `done` 前：对照验收标准；**B 轨必须 §11 测试全 PASS**，备注写 `tests: Bx pass`。
 - **不要**把对方轨任务改成 `done`。
-- 宣称 GATE / AC 通过前：确认本表对应行为 `done`。
+- 宣称 GATE / AC 通过前：确认本表对应行为 `done` 且测试记录齐全。
 
 ---
 
@@ -176,4 +178,4 @@
 
 ---
 
-*G-L3-开发进度表 v1.1 · 冲刺摘要含 B 侧全局阻塞 · 以 git 为本同步源*
+*G-L3-开发进度表 v1.2 · B 轨 done 须手册 §11 测试通过 · 以 git 为本同步源*

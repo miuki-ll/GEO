@@ -1,11 +1,12 @@
 # GEO 开发者 B · 下游任务手册
 
-> **版本**：v1.1 | **日期**：2026-07-16  
+> **版本**：v1.2 | **日期**：2026-07-16  
 > **你是谁**：开发者 B（下游）— 让方案能确认、写出稿、发出去、看出效果  
 > **完整双人约定**：[G-L3-双人任务拆分.md](G-L3-双人任务拆分.md)  
 > **进度同步（git）**：[G-L3-开发进度.md](G-L3-开发进度.md) — 只改其中「开发者 B」相关行  
 > **API 契约**：[G-L3-API契约.md](G-L3-API契约.md) · **实施清单**：[G-L3-实施清单.md](G-L3-实施清单.md)  
-> **v1.1**：新增 §3.1–§3.3（强制顺序 · 可先行/须等 A · 仓库快照）
+> **v1.1**：§3.1–§3.3 强制顺序 · 可先行/须等 A · 仓库快照  
+> **v1.2**：§11 逐步测试；**测试全部通过才允许验收 / 标 `done`**
 
 ---
 
@@ -50,6 +51,7 @@
 | `WAIT_FOR: Ax` | **不要**改 A 的目录；向用户展示 §5 话术通知 A；有 `MOCK_OK` 可用 fixture 继续 |
 | `MOCK_OK` | 用 `backend/tests/fixtures/handoff_a_to_b/` 或内联同结构 mock，写 `TODO(WAIT_FOR: …)` |
 | `NOTIFY: A` | 完成后提示 A 可抽检 / 联调 |
+| `验收` | **§11 测试全 PASS** 后才可标进度 `done`；失败则修或 `blocked` |
 | 进度 | 改状态后更新 [G-L3-开发进度.md](G-L3-开发进度.md) 并 `git commit -m "progress: B…"` + `push` |
 
 统一信封：`{ "code": 0, "data": {}, "msg": "ok" }` · Header：`Authorization: Bearer <JWT>`。
@@ -58,17 +60,17 @@
 
 ## 3. 任务总表（B0–B8）
 
-| # | 任务 | 己方前置 | 跨人依赖 | 实施清单 | 验收 |
-|---|------|----------|----------|:--------:|------|
-| **B0** | 方案包/草稿页骨架（fixture mock） | — | **WAIT_FOR A-fixture** · `MOCK_OK` | — | 五区 UI 可渲染 |
-| **B1** | persona + scenario + 权重 0.6/0.4 | B0 | **WAIT_FOR A7+A8**（真接）· **A3/A0** · `MOCK_OK` | 2.1–2.3 | `GET /strategy-pack/draft` 五区（AC-06/07/08） |
-| **B2** | `POST /strategy-pack/confirm` | B1 | 无 | 2.4–2.5 | 落 scenarios + strategy_pack；触发内容 Job |
-| **B3** | 内容工厂：固定链 + 7 段式 + RAG 切片 | B2 | **WAIT_FOR A2+A3** · `MOCK_OK` | 2.6–2.8 | drafts 含 `fact_refs` + `rag_slices`（AC-09） |
-| **B4** | 5 项机审 + 人闸门 + `approval_log` | B3 | **WAIT_FOR A0**（禁词/合规） | 2.9–2.14 | `bulk-approve`（AC-10/11）· **NOTIFY A** |
-| **B5** | 托管页 AUTO + 小红书 SEMI | B4 | **WAIT_FOR A5**（真发托管页时） | 3.1/3.3/3.5 | `publish_tasks` + `content_asset_id` · **NOTIFY A** |
-| **B6** | Core/Probe + T1 + T0/T1 Δ + Engine 联动 | B5 | **WAIT_FOR A7**（T0）· 验 AC-13 时 **WAIT_FOR A9** | 3.6–3.9/3.12 | Δ 可展示（AC-12/13） |
-| **B7** | 效果舱 Dashboard | B6 | **WAIT_FOR A7**（T0 KPI） | 3.14 | `GET /outcomes/dashboard` |
-| **B8** | 前端：方案包/草稿/发布/监测/效果舱 | 随 B1–B7 | 真接继承上表 · `MOCK_OK` | — | MVP-A 后半段可点通 |
+| # | 任务 | 己方前置 | 跨人依赖 | 实施清单 | 验收（须 §11 测试 PASS） |
+|---|------|----------|----------|:--------:|--------------------------|
+| **B0** | 方案包/草稿页骨架（fixture mock） | — | **WAIT_FOR A-fixture** · `MOCK_OK` | — | T-B0-01～04 + 五区 UI |
+| **B1** | persona + scenario + 权重 0.6/0.4 | B0 | **WAIT_FOR A7+A8**（真接）· **A3/A0** · `MOCK_OK` | 2.1–2.3 | T-B1-01～06（真接加 R01/R02） |
+| **B2** | `POST /strategy-pack/confirm` | B1 | 无 | 2.4–2.5 | T-B2-01～05 |
+| **B3** | 内容工厂：固定链 + 7 段式 + RAG 切片 | B2 | **WAIT_FOR A2+A3** · `MOCK_OK` | 2.6–2.8 | §11.4 B3 |
+| **B4** | 5 项机审 + 人闸门 + `approval_log` | B3 | **WAIT_FOR A0**（禁词/合规） | 2.9–2.14 | §11.4 B4 · **NOTIFY A** |
+| **B5** | 托管页 AUTO + 小红书 SEMI | B4 | **WAIT_FOR A5**（真发托管页时） | 3.1/3.3/3.5 | §11.4 B5 · **NOTIFY A** |
+| **B6** | Core/Probe + T1 + T0/T1 Δ + Engine 联动 | B5 | **WAIT_FOR A7**（T0）· 验 AC-13 时 **WAIT_FOR A9** | 3.6–3.9/3.12 | §11.4 B6 |
+| **B7** | 效果舱 Dashboard | B6 | **WAIT_FOR A7**（T0 KPI） | 3.14 | §11.4 B7 |
+| **B8** | 前端：方案包/草稿/发布/监测/效果舱 | 随 B1–B7 | 真接继承上表 · `MOCK_OK` | — | §11.2 B8 |
 
 ### 推荐开工顺序（周历）
 
@@ -163,7 +165,8 @@ W8:    G5 AC-01 与 A 串全链路
 1. 今天：B0 骨架 + 本地 mock；**NOTIFY A** 提交官方 fixture。  
 2. 本周主线：B1（fixture）→ B2。  
 3. 勿空等：SEMI、闸门 UI、Dashboard 壳可并行。  
-4. 无 A7/A8 时 B1 只能标 `doing`/MOCK，**不得**标真接 `done` 或 G2 green。
+4. 无 A7/A8 时 B1 只能标 `doing`/MOCK，**不得**标真接 `done` 或 G2 green。  
+5. **每步必须按 §11 跑测试；测试未通过一律不得验收、不得在进度表标 `done`。**
 
 ---
 
@@ -545,7 +548,9 @@ Core ~20 / Probe ≤10；引擎列表跟随 `enterprise.target_engines`。
 
 **你侧重的 AC：** AC-01（后半）· AC-02 · AC-03 · AC-06～AC-13  
 
-状态勾选写在 [G-L3-开发进度.md](G-L3-开发进度.md)。
+**验收前提（强制）：** 对应任务在 §11 的测试项全部勾选通过；MOCK 阶段只验收「MOCK 档」用例，真接档须等 A 交付后再测。
+
+状态勾选写在 [G-L3-开发进度.md](G-L3-开发进度.md)；备注须写 `tests: B<n> pass` 或失败项 ID。
 
 ---
 
@@ -556,11 +561,166 @@ Core ~20 / Probe ≤10；引擎列表跟随 `enterprise.target_engines`。
 [ ] 已读 G-L3-开发进度.md 本行状态与 A 前置是否 done
 [ ] 已查本文 §3 依赖；有 WAIT_FOR 则展示 §5 话术，未改 A 目录
 [ ] MOCK_OK 时只用 fixture/stub，并写 TODO(WAIT_FOR: …)
+[ ] 已按 §11 为该任务编写/更新测试并本地跑通
 [ ] 完成且需 NOTIFY 时已提示 A，并更新开发进度表
-[ ] 宣称 GATE/AC 前已核对 §8
-[ ] 准备 git：progress: B<n> <todo|doing|blocked|done>
+[ ] 宣称 GATE/AC / 标 done 前：§11 该任务全部测试 PASS，已核对 §8
+[ ] 准备 git：progress: B<n> done tests pass（失败则不得 done）
 ```
 
 ---
 
-*开发者 B 手册 v1.1 · 强制顺序与 A 阻塞专章 · 进度以 G-L3-开发进度.md 为准*
+## 11. 逐步测试与验收门槛（强制）
+
+### 11.0 铁律
+
+| 规则 | 说明 |
+|------|------|
+| **先测后验** | 每个 Bx 开发完成后必须执行本节对应用例；**全部 PASS 才可验收** |
+| **未测 = 未完成** | 进度表禁止将未测或有失败项的任务标为 `done` |
+| **MOCK / 真接分档** | 先行期只要求「MOCK 档」PASS；标「真接 done」或 GATE 绿必须再跑「真接档」 |
+| **失败即 blocked** | 测试失败：修代码或标 `blocked`（写清失败用例 ID），不得跳过 |
+| **提交附带** | `progress: Bx done` 的 commit 备注或进度表「备注」列须含测试结果摘要 |
+
+### 11.1 测试落盘约定
+
+| 类型 | 建议路径 | 工具 |
+|------|----------|------|
+| 后端 API / service | `backend/tests/b_track/test_b0_….py` … `test_b8_….py` | pytest |
+| 权重/机审纯函数 | 同目录 `test_b1_weights.py` `test_b4_review.py` | pytest |
+| 前端页面烟雾 | 手工清单勾选（MVP）；有框架后再补 vitest/playwright | 手册勾选即可 |
+| 已有冒烟参考 | `backend/scripts/smoke/smoke_test.py` | 可作联调辅助，**不替代** Bx 专项用例 |
+
+命令（后端）：
+
+```bash
+cd backend
+pytest tests/b_track/test_b0_skeleton.py tests/b_track/test_b1_strategy_pack.py tests/b_track/test_b2_confirm.py -q
+```
+
+（文件按任务逐步创建；无文件则该任务**不得**标 done。）
+
+### 11.2 B0–B8 测试总表
+
+| 任务 | 用例 ID 前缀 | MOCK 档（先行可验收） | 真接档（过 GATE / 真 done） | 建议命令 |
+|------|--------------|----------------------|---------------------------|----------|
+| B0 | T-B0-* | 五区+草稿页可渲染；mock JSON 符合 §4 形状 | 官方 `handoff_a_to_b` 可读 | 前端手测 + 可选 schema 校验脚本 |
+| B1 | T-B1-* | `GET draft` 五区字段齐全；`mixed=0.6*m+0.4*p` | 读真 diagnosis/keywords；persona/scenario 非纯静态模板 | `pytest …/test_b1_*.py` |
+| B2 | T-B2-* | confirm 落 `scenarios`+`strategy_packs`；返回 `next_route`；触发内容 Job/队列标记 | （无额外 A 依赖） | `pytest …/test_b2_*.py` |
+| B3 | T-B3-* | drafts 含 `fact_refs`（fixture id）+ `rag_slices` 结构；7 段式骨架 | fact_refs 指向真实 KB；生成经 `chat()` | `pytest …/test_b3_*.py` |
+| B4 | T-B4-* | bulk-approve/reject；`approval_log`；至少 fact_verify+实体类机审 | 禁词来自 IndustryPack；5 项全绿 | `pytest …/test_b4_*.py` |
+| B5 | T-B5-* | SEMI `export_package` 五字段齐全；publish 状态机 | AUTO 托管页 URL 可访问+Schema | `pytest …/test_b5_*.py` |
+| B6 | T-B6-* | Core/Probe 配置；可写 T1（`baseline=false`） | 与 T0 对齐算 Δ；跟随 `target_engines` | `pytest …/test_b6_*.py` |
+| B7 | T-B7-* | dashboard 返回 kpi/funnel 壳 | `delta_mention` 来自真 T0/T1 | `pytest …/test_b7_*.py` |
+| B8 | T-B8-* | 五页路由可开；API 封装非硬编码假数据（可 mock 层） | 带真 JWT 调下游 API | 手测清单 + 后续 E2E |
+
+### 11.3 先行任务详细用例（B0 → B1 → B2）
+
+> 本周主线。以下每条必须有「操作 → 期望」；全部 PASS 才允许该任务 MOCK 验收。
+
+#### B0 · UI 骨架（MOCK）
+
+| ID | 类型 | 操作 | 期望 | PASS? |
+|----|------|------|------|:-----:|
+| T-B0-01 | 手测 | 登录后打开 `/strategy-pack` | 页面不白屏；可见五区占位（A–E） | ☐ |
+| T-B0-02 | 手测 | 打开 `/content/drafts` | 可见草稿列表区（可为空或 mock 行） | ☐ |
+| T-B0-03 | 校验 | mock/fixture JSON 对照 §4 | 含 `enterprise` / `diagnosis.source_map` / `keywords` / `kb_facts` 键 | ☐ |
+| T-B0-04 | 代码 | 真接切换点 | 存在 `TODO(WAIT_FOR: A-fixture)` 或等价注释 | ☐ |
+
+**B0 MOCK 验收：** T-B0-01～04 全 PASS。官方 fixture 未交付不算「交接完成」，但 MOCK 可 done。
+
+#### B1 · 方案包 draft（MOCK 先行）
+
+| ID | 类型 | 操作 | 期望 | PASS? |
+|----|------|------|------|:-----:|
+| T-B1-01 | API | `GET /api/v1/user/strategy-pack/draft`（带 JWT） | `code=0`；`data` 含 persona / competitors / scenarios / channels / keywords | ☐ |
+| T-B1-02 | 单测 | 给定 model_weight=0.4, probe_weight=0.1 | `mixed_weight == 0.28`（允许浮点误差 1e-6） | ☐ |
+| T-B1-03 | API | 检查 `scenarios.candidates` | 为数组；`max<=5`；元素含 `id,user_query,channel,skill` | ☐ |
+| T-B1-04 | API | 检查 `channels[]` | 每项含 `model_weight,probe_weight,mixed_weight` | ☐ |
+| T-B1-05 | 手测 | 方案包页渲染 draft | 五区有数据（可来自 fixture）；无控制台致命错误 | ☐ |
+| T-B1-06 | 代码 | 真接切换点 | `TODO(WAIT_FOR: A7+A8)` | ☐ |
+
+**B1 真接档（A7+A8 后加测，不过 G2 可不跑）：**
+
+| ID | 操作 | 期望 |
+|----|------|------|
+| T-B1-R01 | draft 的渠道权重 | `probe_weight` 来自真实 `source_map`（非写死） |
+| T-B1-R02 | keywords E 区 | 与 `GET /keywords` 一致（租户内） |
+
+**B1 MOCK 验收：** T-B1-01～06 全 PASS。真接 done / G2：再加 T-B1-R01/R02。
+
+#### B2 · confirm（无跨人硬依赖）
+
+| ID | 类型 | 操作 | 期望 | PASS? |
+|----|------|------|------|:-----:|
+| T-B2-01 | API | `POST …/strategy-pack/confirm` body 含 2 个 `selected_scenarios` | `code=0`；`strategy_pack_id` 有值；`next_route` 含 `/content/drafts` | ☐ |
+| T-B2-02 | DB/API | confirm 后再查 scenarios | 已选场景已落库且 `enterprise_id` 正确 | ☐ |
+| T-B2-03 | 行为 | confirm 后 | 内容生成 Job 被触发（task 状态 pending/running 或 drafts 开始出现） | ☐ |
+| T-B2-04 | 负例 | 未选 scenario 或超过 max | 返回 4xx，不落 pack | ☐ |
+| T-B2-05 | 租户 | 用另一租户 token 读该 pack | `403` 或空（不得串数据） | ☐ |
+
+**B2 验收：** T-B2-01～05 全 PASS → 可标 `done`。
+
+### 11.4 B3–B8 最低测试要求（摘要）
+
+实现到该步时，必须把下表展开为与 B0–B2 同级的勾选表（可复制到 PR / 进度备注）。
+
+| 任务 | 最低必测（MOCK） | 真接加测 |
+|------|------------------|----------|
+| B3 | 生成 drafts≥1；每条有 `rag_slices`（title/summary/body/chars）；`fact_refs` 非空数组 | refs∈真实 kb_facts；生成调用 gateway |
+| B4 | reject 回 draft；bulk-approve 写 approval_log；`target_type=strategy_pack+content` | 禁词命中拒发；5 项 `machine_review` |
+| B5 | SEMI 包含 title/body/tags/cover_hint/steps；`content_asset_id` 可追溯 | AUTO URL 200 + Schema 片段 |
+| B6 | 可创建 Core/Probe profile；写入 T1 结果 | 与 T0 同 prompt 算 Δ；改 engines 后监测范围变 |
+| B7 | dashboard JSON 含 kpi + funnel 四层键 | delta 与 monitor 汇总一致 |
+| B8 | 五路由可进；关键按钮触发真实 API（或统一 mock 层） | Bearer 有效；401 未登录 |
+
+### 11.5 GATE 测试（联调日）
+
+| GATE | 测试要点 | 未通过时 |
+|------|----------|----------|
+| G1 | 无 JWT → 401；有 JWT → 下游 API 200 | 提示 A1 / 修 Login |
+| G2 | B1 真接档 PASS | 提示 A7/A8 或修 B1 |
+| G3 | B4+B5 对应用例 PASS | 提示 A0/A5 |
+| G4 | T0+T1 可算 `delta_mention` | 提示 A7 |
+| G5 | §9 路径手工走通 + 相关 Bx 测试绿 | 两侧分别修 |
+
+### 11.6 验收记录模板（贴进度表备注）
+
+```text
+任务: B2
+档: MOCK|真接
+命令: pytest tests/b_track/test_b2_confirm.py -q
+结果: PASS (T-B2-01..05)
+日期: YYYY-MM-DD
+```
+
+失败示例：
+
+```text
+任务: B1
+结果: FAIL T-B1-02 mixed_weight 期望 0.28 实际 0.25
+处置: blocked / 修复中，不得 done
+```
+
+---
+
+## 12. 推荐先行执行清单（本周）
+
+按顺序做；**每步结束跑 §11.3，PASS 再进下一步。**
+
+| 步 | 任务 | 开发要点 | 测试 | 验收条件 |
+|:--:|------|----------|------|----------|
+| 1 | B0 | 五区+草稿骨架；手写 §4 同构 mock | T-B0-01～04 | MOCK PASS → 进度 `B0 done` |
+| 2 | B1 | draft API + 权重公式 + 页渲染 | T-B1-01～06 | MOCK PASS → `B1 done (MOCK)`；真接另计 |
+| 3 | B2 | confirm + 落库 + 触发生成 | T-B2-01～05 | 全 PASS → `B2 done` |
+| 并行 | B8 局部 | 先接 strategy/content API | 手测路由 | 不单独阻塞 B2 |
+| 勿做 | B1 真接 / G2 | — | — | WAIT_FOR A7+A8 |
+
+```text
+【NOTIFY · 请通知开发者 A】（B0 开工时发送）
+请提交 backend/tests/fixtures/handoff_a_to_b/ 四文件（见 B 手册 §4）。
+B 侧暂用手写 mock；G2 前需你方 A7+A8 真接。
+```
+
+---
+
+*开发者 B 手册 v1.2 · 逐步测试强制验收 · 进度以 G-L3-开发进度.md 为准*
