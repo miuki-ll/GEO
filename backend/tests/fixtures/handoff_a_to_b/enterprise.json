@@ -1,0 +1,39 @@
+{
+  "enterprise": {
+    "id": 1,
+    "name": "倾城美业",
+    "industry_pack": "beauty_local",
+    "target_engines": ["doubao", "deepseek"],
+    "brand": {
+      "name": "倾城美业",
+      "differentiator": "透明价格 + 成分公开 + 1v1客制化"
+    },
+    "stores": [
+      {
+        "name": "静安寺旗舰店",
+        "address": "静安区南京西路XX号88楼",
+        "lat": 31.23,
+        "lng": 121.45,
+        "phone": "021-12345678",
+        "hours": "10:00-22:00"
+      }
+    ],
+    "services": [
+      {
+        "name": "敏感肌修护",
+        "price_range": "298-498元",
+        "duration": "60分钟",
+        "target_group": "敏感肌人群"
+      },
+      {
+        "name": "深层补水管理",
+        "price_range": "198-398元",
+        "duration": "45分钟",
+        "target_group": "干性/混干肌肤"
+      }
+    ],
+    "target_customers": ["敏感肌人群", "白领女性", "25-35岁"],
+    "differentiator": "透明价格 + 成分公开 + 1v1客制化",
+    "created_at": "2026-07-16T00:00:00Z"
+  }
+}

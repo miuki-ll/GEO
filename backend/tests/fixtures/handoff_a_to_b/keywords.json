@@ -1,0 +1,90 @@
+{
+  "keywords": [
+    {
+      "id": 1,
+      "keyword": "皮肤管理",
+      "layer": "认知层",
+      "source": "探针反推",
+      "lbs_tags": []
+    },
+    {
+      "id": 2,
+      "keyword": "敏感肌护理",
+      "layer": "认知层",
+      "source": "SEO API",
+      "lbs_tags": []
+    },
+    {
+      "id": 3,
+      "keyword": "静安寺皮肤管理推荐",
+      "layer": "选型层",
+      "source": "LLM生成",
+      "lbs_tags": ["静安区", "静安寺商圈"]
+    },
+    {
+      "id": 4,
+      "keyword": "上海皮肤管理哪家好",
+      "layer": "选型层",
+      "source": "SEO API",
+      "lbs_tags": ["上海"]
+    },
+    {
+      "id": 5,
+      "keyword": "敏感肌修护价格",
+      "layer": "选型层",
+      "source": "RawInputs",
+      "lbs_tags": []
+    },
+    {
+      "id": 6,
+      "keyword": "皮肤管理会不会越做越敏感",
+      "layer": "痛点层",
+      "source": "RawInputs",
+      "lbs_tags": []
+    },
+    {
+      "id": 7,
+      "keyword": "敏感肌做完皮肤管理烂脸怎么办",
+      "layer": "痛点层",
+      "source": "LLM生成",
+      "lbs_tags": []
+    },
+    {
+      "id": 8,
+      "keyword": "皮肤管理怕被推销办卡",
+      "layer": "痛点层",
+      "source": "探针反推",
+      "lbs_tags": []
+    },
+    {
+      "id": 9,
+      "keyword": "周末敏感肌护理静安区",
+      "layer": "场景层",
+      "source": "LLM生成",
+      "lbs_tags": ["静安区"]
+    },
+    {
+      "id": 10,
+      "keyword": "白领午休皮肤管理",
+      "layer": "场景层",
+      "source": "SEO API",
+      "lbs_tags": ["静安寺商圈"]
+    },
+    {
+      "id": 11,
+      "keyword": "换季敏感肌急救",
+      "layer": "场景层",
+      "source": "LLM生成",
+      "lbs_tags": []
+    },
+    {
+      "id": 12,
+      "keyword": "VISIA检测皮肤管理",
+      "layer": "认知层",
+      "source": "手动",
+      "lbs_tags": []
+    }
+  ],
+  "layer_enum": ["认知层", "选型层", "痛点层", "场景层"],
+  "source_enum": ["RawInputs", "探针反推", "SEO API", "LLM生成", "手动"]
+}
