@@ -19,6 +19,7 @@ class MonitorResultBase(BaseSchema):
     position_rank: Optional[int] = None
     response_text: Optional[str] = None
     competitor_mentions: List[Dict[str, Any]] = Field(default_factory=list)
+    baseline: bool = False  # True=T0 · False=T1（手册 B6）
     run_at: Optional[datetime] = None
     batch_no: Optional[str] = None
     metadata_: Dict[str, Any] = Field(default_factory=dict, alias="metadata")

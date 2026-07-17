@@ -421,7 +421,7 @@ B4 人闸门 + B5 发布已达联调标准。
   ],
   "machine_review": {
     "fact_verify": true,
-    "forbidden_words": false,
+    "forbidden_words": true,
     "cross_validation": true,
     "entity_consistency": true,
     "rag_readability": true
@@ -430,6 +430,7 @@ B4 人闸门 + B5 发布已达联调标准。
 }
 ```
 
+> 五键语义：`true` = 该项通过；其中 `forbidden_words: true` = 未命中禁词（TD-04 定稿，与契约一致）。
 | API | 输入 | 输出 |
 |-----|------|------|
 | `POST .../bulk-approve` | `{ "ids": [1,2,3] }` | `{ "approved": 3, "failed": [], "next_route": "/publish/tasks" }` + `approval_logs` |
@@ -707,18 +708,28 @@ pytest tests/b_track/test_b0_skeleton.py tests/b_track/test_b1_strategy_pack.py 
 
 按顺序做；**每步结束跑 §11.3，PASS 再进下一步。**
 
-| 步 | 任务 | 开发要点 | 测试 | 验收条件 |
-|:--:|------|----------|------|----------|
-| 1 | B0 | 五区+草稿骨架；手写 §4 同构 mock | T-B0-01～04 | MOCK PASS → 进度 `B0 done` |
-| 2 | B1 | draft API + 权重公式 + 页渲染 | T-B1-01～06 | MOCK PASS → `B1 done (MOCK)`；真接另计 |
-| 3 | B2 | confirm + 落库 + 触发生成 | T-B2-01～05 | 全 PASS → `B2 done` |
-| 并行 | B8 局部 | 先接 strategy/content API | 手测路由 | 不单独阻塞 B2 |
-| 勿做 | B1 真接 / G2 | — | — | WAIT_FOR A7+A8 |
+| 步 | 任务 | 开发要点 | 测试 | 验收条件 | 前端可看？ |
+|:--:|------|----------|------|----------|------------|
+| 1 | B0 | 五区+草稿骨架；手写 §4 同构 mock | T-B0-01～04 | MOCK PASS | **可以** — `/strategy-pack` 看 A–E 区；`/content/drafts` 看列表 |
+| 2 | B1 | draft API + 权重公式 + 页渲染 | T-B1-01～06 | MOCK PASS | **可以** — 同页刷新草案；黄条表示 MOCK |
+| 3 | B2 | confirm + 落库 + 触发生成 | T-B2-01～05 | 全 PASS | **部分可以** — 勾选 scenario 点确认；无真 JWT/后端时会 MOCK 跳转草稿页 |
+| 并行 | B8 局部 | 先接 strategy/content API | 手测路由 | 不单独阻塞 B2 | 同上 |
+| 勿做 | B1 真接 / G2 | — | — | WAIT_FOR A7+A8 | — |
+
+### 12.1 前端查看步骤（B0–B2）
+
+1. 启动前端：`cd frontend && npm run dev`（默认 http://localhost:5173）
+2. 打开登录页，用占位账号进入（当前 Login 仍为 demo-token stub，**属 A1 范围**；有 token 即可进后台）
+3. 侧栏进入 **方案包** `/strategy-pack` → 应看到 **A–E 五区**；顶部可能有 MOCK 黄条
+4. 勾选 1–2 个 scenario → **确认方案包** → 跳转 **内容草稿** `/content/drafts`
+5. 草稿页应有列表区（MOCK 两行或空列表提示）
+
+**不能当真接验收的：** 无 A7/A8 时五区数据非探针实测；无后端 JWT 时 confirm 不落库。
 
 ```text
 【NOTIFY · 请通知开发者 A】（B0 开工时发送）
-请提交 backend/tests/fixtures/handoff_a_to_b/ 四文件（见 B 手册 §4）。
-B 侧暂用手写 mock；G2 前需你方 A7+A8 真接。
+请提交 backend/tests/fixtures/handoff_a_to_b/ 官方四文件（enterprise/diagnosis/keywords/kb_facts）。
+B 侧暂用 enterprise_bundle.json MOCK；G2 前需你方 A7+A8 真接。
 ```
 
 ---

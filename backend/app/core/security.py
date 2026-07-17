@@ -68,6 +68,48 @@ def decode_token(token: str) -> dict | None:
         return None
 
 
+def _is_demo_token(token: str) -> bool:
+    return bool(token) and token.startswith("demo-token-")
+
+
+def _ensure_demo_user(db: Session) -> Optional["User"]:
+    """开发环境：为前端占位 demo-token 准备/复用 demo@geo.test，并灌入演示数据。"""
+    from app.models import Enterprise, User
+
+    user = db.query(User).filter(User.email == "demo@geo.test").first()
+    if not (user and user.is_active):
+        ent = Enterprise(
+            name="Demo 美业店",
+            industry="beauty_local",
+            industry_pack="beauty_local",
+            status="active",
+            plan="mvp",
+            contact_email="demo@geo.test",
+        )
+        db.add(ent)
+        db.flush()
+        user = User(
+            enterprise_id=ent.id,
+            email="demo@geo.test",
+            full_name="Demo User",
+            hashed_password=get_password_hash("demo123456"),
+            role="owner",
+            is_active=True,
+        )
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+        logger.info("dev demo user created id=%s enterprise_id=%s", user.id, ent.id)
+
+    try:
+        from app.dev_seed import ensure_tenant_seed_data
+
+        ensure_tenant_seed_data(db, user.enterprise_id, user.id)
+    except Exception as e:
+        logger.warning("demo tenant seed skipped/failed: %s", e)
+    return user
+
+
 def get_current_user_or_none(
     token: Optional[str] = Depends(oauth2_scheme),
     db: Session = Depends(get_db),
@@ -78,6 +120,9 @@ def get_current_user_or_none(
     try:
         if not token:
             return None
+        # MVP：前端 Login 仍发 demo-token-*；仅 development 放行
+        if settings.is_dev and _is_demo_token(token):
+            return _ensure_demo_user(db)
         payload = decode_token(token)
         if not payload:
             return None

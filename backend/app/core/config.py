@@ -32,6 +32,12 @@ class Settings(BaseSettings):
     APP_ENV: str = os.getenv("APP_ENV", "development")
     APP_DEBUG: bool = os.getenv("APP_DEBUG", "true").lower() in ("1", "true", "yes")
 
+    # 进程角色：api | worker | mcp（AutoInitManager 按角色过滤钩子）
+    APP_PROCESS_ROLE: str = os.getenv("APP_PROCESS_ROLE", "api")
+    PRELOAD_MODELS_ON_STARTUP: bool = os.getenv(
+        "PRELOAD_MODELS_ON_STARTUP", "false"
+    ).lower() in ("1", "true", "yes")
+
     # --- 安全 / JWT ---
     SECRET_KEY: str = os.getenv("SECRET_KEY", "change-me-in-production-please")
     ALGORITHM: str = "HS256"

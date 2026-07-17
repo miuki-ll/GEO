@@ -51,6 +51,8 @@ class MonitorResult(Base, TenantMixin, TimestampMixin):
     response_text = Column(Text)
     competitor_mentions = Column(JSON, default=list)
     metrics = Column(JSON, default=dict)
+    # TD-10 / B6：true=T0（A 写），false=T1（B 写）；算 Δ 依赖此字段
+    baseline = Column(Boolean, default=False, index=True, nullable=False)
     run_at = Column(DateTime, index=True)
     batch_no = Column(String(50), index=True)
     metadata_ = Column("metadata_json", JSON, default=dict)
