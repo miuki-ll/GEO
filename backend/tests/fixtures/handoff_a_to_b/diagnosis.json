@@ -1,0 +1,72 @@
+{
+  "diagnosis": {
+    "id": 1,
+    "enterprise_id": 1,
+    "engine_code": "doubao",
+    "probe_prompts": [
+      "静安寺附近皮肤管理推荐",
+      "敏感肌能不能做皮肤管理",
+      "上海哪里做皮肤管理好",
+      "敏感肌修护哪家好",
+      "静安区口碑好的美容院"
+    ],
+    "brand_mention_rate": 0.05,
+    "hallucination_rate": 0.0,
+    "competitor_occupancy": {
+      "XX美容连锁": 0.4,
+      "YY美肌中心": 0.25,
+      "ZZ医美": 0.15
+    },
+    "source_map": {
+      "rankings": [
+        { "domain": "dianping.com", "count": 12, "weight": 0.35 },
+        { "domain": "zhihu.com", "count": 8, "weight": 0.24 },
+        { "domain": "xiaohongshu.com", "count": 6, "weight": 0.18 },
+        { "domain": "baidu.com", "count": 5, "weight": 0.15 },
+        { "domain": "sohu.com", "count": 3, "weight": 0.08 }
+      ],
+      "gaps": ["今日头条", "抖音"]
+    },
+    "track": "blank",
+    "competitor_analysis": [
+      {
+        "name": "XX美容连锁",
+        "type": "chain",
+        "strengths": ["品牌知名度高", "门店多"],
+        "weaknesses": ["服务标准化，缺乏个性化", "价格不透明"],
+        "differentiation": "倾城美业主打本地化定制 + 1v1咨询，价格全透明"
+      },
+      {
+        "name": "YY美肌中心",
+        "type": "independent",
+        "strengths": ["装修好", "服务态度好"],
+        "weaknesses": ["线上口碑少", "无AI托管页"],
+        "differentiation": "倾城美业在AI搜索侧有托管页覆盖，线上信任度更高"
+      }
+    ]
+  },
+  "t0_baseline": {
+    "ready": true,
+    "note": "T0基线由A7诊断时写入monitor_results，baseline=true。下方为B侧mock B6/B7时可直接使用的同构假数据。",
+    "sample_t0_records": [
+      {
+        "engine_code": "doubao",
+        "prompt": "静安寺附近皮肤管理推荐",
+        "brand_mentioned": false,
+        "rank": null,
+        "hallucination": false,
+        "citations": ["dianping.com/xx", "zhihu.com/yy"],
+        "baseline": true
+      },
+      {
+        "engine_code": "doubao",
+        "prompt": "敏感肌能不能做皮肤管理",
+        "brand_mentioned": true,
+        "rank": 1,
+        "hallucination": false,
+        "citations": ["dianping.com/zz"],
+        "baseline": true
+      }
+    ]
+  }
+}
