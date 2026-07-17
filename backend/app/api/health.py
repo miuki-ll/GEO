@@ -81,14 +81,39 @@ def liveness():
     return ResponseModel(data={"status": "ok", "service": "geo-platform", "kind": "liveness"})
 
 
+def _check_auto_init() -> str:
+    from app.infrastructure.bootstrap.init_manager import auto_init
+
+    status = auto_init.get_status()
+    if not status.get("started"):
+        return "pending"
+    for info in status.get("items", {}).values():
+        if info.get("status") == "failed":
+            return "fail"
+    return "ok"
+
+
 @router.get("/health/ready", response_model=ResponseModel[dict])
 def readiness(db: Session = Depends(get_db)):
     db_ok = _check_db(db).get("ok")
-    status = "ok" if db_ok else "not_ready"
-    code = 0 if db_ok else 503
+    auto_init_status = _check_auto_init()
+    ready = bool(db_ok) and auto_init_status == "ok"
+    status = "ok" if ready else "not_ready"
+    code = 0 if ready else 503
+    msg = ""
+    if not db_ok:
+        msg = "DB not ready"
+    elif auto_init_status != "ok":
+        msg = f"auto_init {auto_init_status}"
     return ResponseModel.model_construct(
         code=code,
-        message="" if db_ok else "DB not ready",
-        data={"status": status, "db": db_ok, "service": "geo-platform", "kind": "readiness"},
+        message=msg,
+        data={
+            "status": status,
+            "db": db_ok,
+            "auto_init": auto_init_status,
+            "service": "geo-platform",
+            "kind": "readiness",
+        },
     )
 

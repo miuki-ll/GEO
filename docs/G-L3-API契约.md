@@ -409,7 +409,7 @@ Response 200:
         "title": "敏感肌能不能做皮肤管理？",
         "body": "可以。敏感肌先做VISIA检测...",
         "fact_refs": [1, 5, 8],
-        "machine_review": { "fact_verify": true, "forbidden_words": false, "cross_validation": true, "entity_consistency": true, "rag_readability": true },
+        "machine_review": { "fact_verify": true, "forbidden_words": true, "cross_validation": true, "entity_consistency": true, "rag_readability": true },
         "status": "ready"
       }
     ],
@@ -418,6 +418,7 @@ Response 200:
 }
 ```
 
+> **机审五键语义（TD-04 定稿）**：每键 `true` = 该项通过；`forbidden_words: true` 表示**未命中**禁词（通过），`false` 表示命中未通过。与其余四键同向，可用 `all(machine_review.values())` 判断整单是否过机审。
 ### POST /api/v1/user/content/drafts/{id}/approve
 
 ```

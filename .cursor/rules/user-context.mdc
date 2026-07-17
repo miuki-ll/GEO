@@ -23,4 +23,5 @@ alwaysApply: true
 
 - 产品讨论阶段：先对齐再写 PRD/代码，不擅自扩大范围
 - 只在我明确要求时 git commit
+- **提交须新建分支**（勿直接推 `main`），合并等我确认（详见 `git-branch-workflow.mdc`）
 - 边做边优化，MVP 优先于过度设计

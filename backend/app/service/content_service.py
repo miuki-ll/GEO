@@ -24,7 +24,7 @@ from app.schemas.kb import KBFactListParams
 
 logger = get_logger(__name__)
 
-_FORBIDDEN_CN = ["最", "第一", "顶级", "国家级", "纯天然", "无任何副作用", "根治", "永不复发", "100%有效", "彻底解决"]
+APPROVAL_TARGET_TYPE = "strategy_pack+content"
 
 
 def _write_approval_log(
@@ -35,17 +35,18 @@ def _write_approval_log(
     actor_id: int,
     note: Optional[str] = None,
     machine_review_snapshot: Optional[Dict[str, Any]] = None,
-) -> None:
-    db.add(
-        ApprovalLog(
-            enterprise_id=enterprise_id,
-            content_asset_id=content_asset_id,
-            action=action,
-            actor_id=actor_id,
-            note=note,
-            machine_review_snapshot=machine_review_snapshot or {},
-        )
+) -> ApprovalLog:
+    log = ApprovalLog(
+        enterprise_id=enterprise_id,
+        content_asset_id=content_asset_id,
+        action=action,
+        actor_id=actor_id,
+        note=note,
+        machine_review_snapshot=machine_review_snapshot or {},
+        metadata_={"target_type": APPROVAL_TARGET_TYPE},
     )
+    db.add(log)
+    return log
 
 
 class ContentService:
@@ -147,25 +148,30 @@ class ContentService:
         draft = ContentService.get(db, enterprise_id, did)
         if not draft:
             raise ValueError("草稿不存在")
-        report = FactVerifyReport(passed=True, hits=[], missing_refs=[], extra_text=None)
+        from app.content_review import check_fact_verify
+
         fact_ids = [fid for fid in (draft.fact_refs or []) if isinstance(fid, int)]
+        facts_rows = []
         if fact_ids:
-            facts = db.query(KBFact).filter(KBFact.enterprise_id == enterprise_id, KBFact.id.in_(fact_ids)).all()
-            fact_map = {f.id: f for f in facts}
-            for fid in fact_ids:
-                f = fact_map.get(fid)
-                if not f:
-                    report.missing_refs.append(fid)
-                    report.passed = False
-                    continue
-                claim = f.content or ""
-                text = draft.content or ""
-                hit = bool(claim) and any(
-                    part in text for part in re.split(r"[，,。；;！!?？\s]", claim) if len(part) >= 3
-                )
-                report.hits.append({"fact_id": fid, "claim": claim, "hit": hit, "ref_citation_found": hit})
-                if not hit:
-                    report.passed = False
+            facts_rows = (
+                db.query(KBFact)
+                .filter(KBFact.enterprise_id == enterprise_id, KBFact.id.in_(fact_ids))
+                .all()
+            )
+        facts = [
+            {"id": f.id, "title": f.title, "content": f.content, "category": getattr(f, "category", "")}
+            for f in facts_rows
+        ]
+        if not facts:
+            from app.content_factory import kb_fetch
+
+            facts = kb_fetch(fact_ids=fact_ids or None)
+        result = check_fact_verify(draft.content or "", facts)
+        report = FactVerifyReport(
+            passed=bool(result["ok"]),
+            hits=result.get("hits") or [],
+            missing_refs=result.get("missing_refs") or [],
+        )
         return report
 
     @staticmethod
@@ -173,38 +179,82 @@ class ContentService:
         draft = ContentService.get(db, enterprise_id, did)
         if not draft:
             raise ValueError("草稿不存在")
-        report = ComplianceReport(passed=True, issues=[], forbidden_words=[])
+        from app.content_review import check_forbidden_words, resolve_forbidden_words
+        from app.models import Enterprise
+
+        ent = db.query(Enterprise).filter(Enterprise.id == enterprise_id).first()
+        pack_code = (getattr(ent, "industry_pack", None) if ent else None) or "beauty_local"
+        words, _ = resolve_forbidden_words(pack_code)
         text = f"{draft.title}\n{draft.content}"
-        for w in _FORBIDDEN_CN:
-            if w in text:
-                report.forbidden_words.append(w)
-                report.passed = False
-                report.issues.append({"type": "forbidden", "word": w, "position": text.find(w)})
+        result = check_forbidden_words(text, words)
+        report = ComplianceReport(
+            passed=bool(result["ok"]),
+            issues=[{"type": "forbidden", "word": w} for w in (result.get("hits") or [])],
+            forbidden_words=list(result.get("hits") or []),
+        )
         return report
 
     @staticmethod
     def run_machine_review(db: Session, enterprise_id: int, did: int) -> ContentDraft:
-        fact_report = ContentService.machine_verify_facts(db, enterprise_id, did)
-        comp_report = ContentService.machine_verify_compliance(db, enterprise_id, did)
-        machine_pass = fact_report.passed and comp_report.passed
-        upd = ContentDraftUpdate(
-            fact_verify_pass=fact_report.passed,
-            fact_verify_report=fact_report,
-            compliance_pass=comp_report.passed,
-            compliance_report=comp_report,
-            status="reviewed" if machine_pass else "blocked",
+        from app.content_review import run_five_machine_reviews
+        from app.content_factory import kb_fetch
+        from app.models import Enterprise
+
+        draft = ContentService.get(db, enterprise_id, did)
+        if not draft:
+            raise ValueError("草稿不存在")
+
+        fact_ids = [fid for fid in (draft.fact_refs or []) if isinstance(fid, int)]
+        facts_rows = []
+        if fact_ids:
+            facts_rows = (
+                db.query(KBFact)
+                .filter(KBFact.enterprise_id == enterprise_id, KBFact.id.in_(fact_ids))
+                .all()
+            )
+        facts = [
+            {"id": f.id, "title": f.title, "content": f.content, "category": getattr(f, "category", "")}
+            for f in facts_rows
+        ] or kb_fetch(fact_ids=fact_ids or None)
+
+        meta = dict(getattr(draft, "metadata_", None) or {})
+        rag_slices = list(meta.get("rag_slices") or [])
+        ent = db.query(Enterprise).filter(Enterprise.id == enterprise_id).first()
+        pack_code = (getattr(ent, "industry_pack", None) if ent else None) or "beauty_local"
+
+        review = run_five_machine_reviews(
+            body=draft.content or "",
+            title=draft.title or "",
+            facts=facts,
+            rag_slices=rag_slices,
+            industry_pack_code=pack_code,
         )
-        it = ContentService.get(db, enterprise_id, did)
-        # manual field
-        it.machine_review_pass = machine_pass
+        mr = review["machine_review"]
+        meta["machine_review"] = mr
+        meta["machine_review_details"] = review["details"]
+        draft.metadata_ = meta
+        draft.fact_verify_pass = bool(mr.get("fact_verify"))
+        draft.compliance_pass = bool(mr.get("forbidden_words"))
+        draft.machine_review_pass = bool(review["passed"])
+        draft.status = "ready" if review["passed"] else "draft"
+        draft.updated_at = datetime.utcnow()
         db.commit()
-        return ContentService.update(db, enterprise_id, did, upd)
+        db.refresh(draft)
+        return ContentService._load(draft)
 
     @staticmethod
     def human_approve(db: Session, enterprise_id: int, did: int, actor_id: int, note: Optional[str] = None) -> ContentDraft:
         draft = ContentService.get(db, enterprise_id, did)
         if not draft:
             raise ValueError("草稿不存在")
+        meta = dict(getattr(draft, "metadata_", None) or {})
+        snapshot = meta.get("machine_review") or {
+            "fact_verify": bool(draft.fact_verify_pass),
+            "forbidden_words": bool(draft.compliance_pass),
+            "cross_validation": True,
+            "entity_consistency": True,
+            "rag_readability": bool(meta.get("rag_slices")),
+        }
         upd = ContentDraftUpdate(
             human_review_status="approved",
             human_review_note=note,
@@ -214,77 +264,149 @@ class ContentService:
         updated.human_review_by = actor_id
         updated.human_review_at = datetime.utcnow()
         _write_approval_log(
-            db, enterprise_id, did, "approved", actor_id, note,
-            machine_review_snapshot={
-                "fact_verify_pass": draft.fact_verify_pass,
-                "compliance_pass": draft.compliance_pass,
-                "machine_review_pass": draft.machine_review_pass,
-            },
+            db,
+            enterprise_id,
+            did,
+            "confirm",
+            actor_id,
+            note,
+            machine_review_snapshot=snapshot,
         )
         db.commit()
         db.refresh(updated)
+        try:
+            from app.service.publish_service import PublishService
+
+            PublishService.ensure_task_for_asset(db, enterprise_id, did)
+        except Exception as e:
+            logger.warning("ensure publish task after approve failed id=%s: %s", did, e)
         return ContentService._load(updated)
 
     @staticmethod
     def human_reject(db: Session, enterprise_id: int, did: int, actor_id: int, note: Optional[str] = None) -> ContentDraft:
+        """驳回 → status=draft（手册 B4）。"""
         upd = ContentDraftUpdate(
             human_review_status="rejected",
             human_review_note=note,
-            status="needs_edit",
+            status="draft",
         )
         it = ContentService.update(db, enterprise_id, did, upd)
         it.human_review_by = actor_id
         it.human_review_at = datetime.utcnow()
-        _write_approval_log(db, enterprise_id, did, "rejected", actor_id, note)
+        meta = dict(getattr(it, "metadata_", None) or {})
+        _write_approval_log(
+            db,
+            enterprise_id,
+            did,
+            "reject",
+            actor_id,
+            note,
+            machine_review_snapshot=meta.get("machine_review") or {},
+        )
         db.commit()
         db.refresh(it)
         return ContentService._load(it)
 
     @staticmethod
-    def bulk_approve(db: Session, enterprise_id: int, actor_id: int, req: BulkApproveRequest) -> List[int]:
-        ok_ids = []
+    def bulk_approve(db: Session, enterprise_id: int, actor_id: int, req: BulkApproveRequest) -> Dict[str, Any]:
+        ok_ids: List[int] = []
+        failed: List[Dict[str, Any]] = []
         for did in req.ids:
             try:
                 ContentService.human_approve(db, enterprise_id, did, actor_id, req.note)
                 ok_ids.append(did)
             except Exception as e:
                 logger.warning("bulk_approve skip id=%s err=%s", did, e)
+                failed.append({"id": did, "error": str(e)})
         logger.info("bulk_approve done n=%d enterprise=%s", len(ok_ids), enterprise_id)
-        return ok_ids
+        return {
+            "approved": len(ok_ids),
+            "approved_ids": ok_ids,
+            "failed": failed,
+            "next_route": "/publish/tasks",
+            "target_type": APPROVAL_TARGET_TYPE,
+        }
 
     @staticmethod
     def generate_drafts_for_scenario(
         db: Session, enterprise_id: int, scenario_id: int, persona: Optional[Dict[str, Any]] = None
     ) -> List[ContentDraft]:
+        """B3：固定链生成 1 scenario × channel × skill（可扩展多 skill）。"""
+        from app.content_factory import run_fixed_chain
+
         scenario = ScenarioService.get(db, enterprise_id, scenario_id)
         if not scenario:
             raise ValueError("Scenario 不存在")
-        facts, _ = FactService.list(db, enterprise_id, KBFactListParams(page=1, page_size=10))
-        facts_text = "\n".join([f"- [{f.id}] {f.content}" for f in facts])
-        fact_ids = [f.id for f in facts[:5]]
-        titles = [
-            f"{scenario.title} · FAQ 标准问答",
-            f"{scenario.title} · 深度种草稿",
-            f"{scenario.title} · 场景对比稿",
-        ]
-        created = []
-        for i, title in enumerate(titles):
-            skill = "faq" if i == 0 else ("article" if i == 1 else "comparison")
-            body = (
-                f"根据以下已核验事实：\n{facts_text}\n\n"
-                f"针对用户问题：{scenario.user_query}\n"
-                f"输出内容：{title}。\n"
-                "如需引用事实，使用 [fact_ref:#id] 标注；成分描述全部来自 KB；不使用医疗功效用语。"
-            )
-            draft = ContentDraftCreate(
-                scenario_id=scenario.id,
-                title=title,
-                content=body,
-                skill=skill,
-                channel=scenario.channel or "hosted",
-                fact_refs=fact_ids,
-                status="draft",
-                version=1,
-            )
-            created.append(ContentService.create(db, enterprise_id, draft))
-        return created
+
+        facts, _ = FactService.list(db, enterprise_id, KBFactListParams(page=1, page_size=20))
+        channel = scenario.channel or "hosted"
+        skill = scenario.skill or "faq"
+        produced = run_fixed_chain(
+            user_query=scenario.user_query or scenario.title or "",
+            channel=channel,
+            skill=skill,
+            db_facts=facts,
+        )
+        draft = ContentDraftCreate(
+            scenario_id=scenario.id,
+            title=produced["title"],
+            content=produced["body"],
+            skill=skill,
+            channel=channel,
+            fact_refs=produced["fact_refs"],
+            status=produced.get("status") or "ready",
+            version=1,
+        )
+        created = ContentService.create(db, enterprise_id, draft)
+        meta = dict(getattr(created, "metadata_", None) or {})
+        meta["rag_slices"] = produced["rag_slices"]
+        meta["seven_segments"] = produced["seven_segments"]
+        meta["machine_review"] = produced["machine_review"]
+        meta["content_factory"] = {"mock": True, "todo": "WAIT_FOR: A2+A3"}
+        created.metadata_ = meta
+        db.commit()
+        db.refresh(created)
+        # B4：生成后跑 5 项机审
+        reviewed = ContentService.run_machine_review(db, enterprise_id, created.id)
+        return [reviewed]
+
+    @staticmethod
+    def generate_for_unit(
+        db: Session,
+        enterprise_id: int,
+        *,
+        scenario_id: int,
+        user_query: str,
+        channel: str,
+        skill: str,
+    ) -> ContentDraft:
+        """confirm 路径：按 content_unit 生成一条草稿。"""
+        from app.content_factory import run_fixed_chain
+
+        facts, _ = FactService.list(db, enterprise_id, KBFactListParams(page=1, page_size=20))
+        produced = run_fixed_chain(
+            user_query=user_query,
+            channel=channel or "hosted",
+            skill=skill or "faq",
+            db_facts=facts,
+        )
+        draft = ContentDraftCreate(
+            scenario_id=scenario_id,
+            title=produced["title"],
+            content=produced["body"],
+            skill=skill or "faq",
+            channel=channel or "hosted",
+            fact_refs=produced["fact_refs"],
+            status=produced.get("status") or "ready",
+            version=1,
+        )
+        created = ContentService.create(db, enterprise_id, draft)
+        meta = dict(getattr(created, "metadata_", None) or {})
+        meta["rag_slices"] = produced["rag_slices"]
+        meta["seven_segments"] = produced["seven_segments"]
+        meta["machine_review"] = produced["machine_review"]
+        meta["content_factory"] = {"mock": True, "todo": "WAIT_FOR: A2+A3"}
+        created.metadata_ = meta
+        db.commit()
+        db.refresh(created)
+        return ContentService.run_machine_review(db, enterprise_id, created.id)

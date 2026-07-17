@@ -1,0 +1,12 @@
+---
+description: Git 提交须新建分支，禁止直接推 main；合并需用户确认
+alwaysApply: true
+---
+
+# Git 分支工作流
+
+- **提交到仓库时**：先 `git checkout -b <branch>` 再建 commit；**禁止**在 `main` 上直接 commit / push（用户明确要求除外）
+- **分支命名**：`docs/…` · `feat/…` · `fix/…` · `chore/…`（例：`docs/b-handbook-tests`、`feat/b0-strategy-ui`）
+- **推送**：`git push -u origin HEAD` 推当前分支，不要默认推 `main`
+- **合并**：仅当用户明确要求 merge / 开 PR 时，再合并进 `main`（优先用 PR：`gh pr create`）
+- **仍遵守**：只在用户明确要求时才 commit；不 force push main；不擅自改 git config

@@ -53,26 +53,21 @@ def setup_exception_handlers(app: FastAPI) -> None:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    logger.info("Starting GEO Platform (env=%s)...", settings.APP_ENV)
-    from app.core.db import engine
-    from app.models import auth, kb, strategy, content, publish, monitor, audit, events, ops  # noqa: F401
-    from app.core.db import Base
-    try:
-        Base.metadata.create_all(bind=engine)
-        logger.info("DB schema ensure_all_tables OK")
-    except Exception as e:
-        logger.warning("DB create_all skipped/warn: %s", e)
-    if settings.SENTRY_DSN and settings.is_prod:
-        try:
-            import sentry_sdk
+    # 注意：勿写 `import app.xxx`（会覆盖参数名 app → 变成包模块）
+    import importlib
 
-            sentry_sdk.init(
-                dsn=settings.SENTRY_DSN,
-                traces_sample_rate=settings.SENTRY_TRACES_SAMPLE_RATE,
-            )
-        except Exception as e:
-            logger.warning("Sentry init failed: %s", e)
+    from app.infrastructure.bootstrap.init_manager import auto_init
+
+    importlib.import_module("app.infrastructure.bootstrap.registrations.register_all")
+
+    logger.info(
+        "Starting GEO Platform (env=%s role=%s)...",
+        settings.APP_ENV,
+        settings.APP_PROCESS_ROLE,
+    )
+    await auto_init.start(app)
     yield
+    await auto_init.stop()
     logger.info("GEO Platform shutting down...")
 
 

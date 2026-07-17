@@ -598,7 +598,7 @@ mixed_weight = model_weight × 0.6 + probe_weight × 0.4
   ],
   "machine_review": {
     "fact_verify": true,
-    "forbidden_words": false,
+    "forbidden_words": true,
     "cross_validation": true,
     "entity_consistency": true,
     "rag_readability": true
@@ -607,6 +607,7 @@ mixed_weight = model_weight × 0.6 + probe_weight × 0.4
 }
 ```
 
+> 五键 `true`=通过；`forbidden_words: true`=未命中禁词（TD-04）。
 **content_unit：** `1 scenario × 1 channel × 1 skill`  
 **fact_refs：** 必须是 `kb_facts.id[]`（来自 A · **WAIT_FOR A2**）
 

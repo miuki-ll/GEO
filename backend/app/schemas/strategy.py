@@ -69,6 +69,10 @@ class ChannelWeight(BaseSchema):
     name: str
     weight: int = Field(0, ge=0, le=100)
     mode: str = "auto"
+    model_weight: Optional[float] = None
+    probe_weight: Optional[float] = None
+    mixed_weight: Optional[float] = None
+    scenario_count: Optional[int] = None
 
 
 class StrategyPackBase(BaseSchema):

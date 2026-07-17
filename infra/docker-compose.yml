@@ -52,6 +52,8 @@ services:
       - REDIS_URL=redis://:geo_redis_password@redis:6379/0
       - CELERY_BROKER_URL=redis://:geo_redis_password@redis:6379/1
       - CELERY_RESULT_BACKEND=redis://:geo_redis_password@redis:6379/2
+      - APP_PROCESS_ROLE=api
+      - PRELOAD_MODELS_ON_STARTUP=${PRELOAD_MODELS_ON_STARTUP:-false}
     volumes:
       - ../backend:/app
       - backend_uploads:/app/uploads
@@ -81,6 +83,8 @@ services:
       - REDIS_URL=redis://:geo_redis_password@redis:6379/0
       - CELERY_BROKER_URL=redis://:geo_redis_password@redis:6379/1
       - CELERY_RESULT_BACKEND=redis://:geo_redis_password@redis:6379/2
+      - APP_PROCESS_ROLE=worker
+      - PRELOAD_MODELS_ON_STARTUP=${PRELOAD_MODELS_ON_STARTUP:-false}
     volumes:
       - ../backend:/app
     depends_on:

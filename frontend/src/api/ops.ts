@@ -24,6 +24,9 @@ const A = '/api/v1/agent'
 export function listDrafts(params: PaginationParams & { status?: string; channel?: string } = {}) {
   return request.get<any, ApiResponse<ContentDraftItem[]>>(`${U}/content/drafts`, { params })
 }
+export function getDraft(id: number) {
+  return request.get<any, ApiResponse<ContentDraftItem>>(`${U}/content/drafts/${id}`)
+}
 export function createDraft(data: Partial<ContentDraftItem>) {
   return request.post<any, ApiResponse<ContentDraftItem>>(`${U}/content/drafts`, data)
 }
@@ -32,6 +35,17 @@ export function updateDraft(id: number, data: Partial<ContentDraftItem>) {
 }
 export function bulkApproveDrafts(ids: number[]) {
   return request.post<any, ApiResponse<any>>(`${U}/content/drafts/bulk-approve`, { ids })
+}
+export function approveDraft(id: number, note?: string) {
+  return request.post<any, ApiResponse<any>>(`${U}/content/drafts/${id}/approve`, null, {
+    params: note ? { note } : undefined,
+  })
+}
+export function rejectDraft(id: number, reason?: string) {
+  return request.post<any, ApiResponse<any>>(`${U}/content/drafts/${id}/reject`, { reason: reason || '' })
+}
+export function runMachineReview(id: number) {
+  return request.post<any, ApiResponse<any>>(`${U}/content/drafts/${id}/machine-review`)
 }
 export function triggerContentProduce(data: ProduceRequest = {}) {
   return request.post<any, ApiResponse<AgentTask>>(`${A}`, {
@@ -47,6 +61,14 @@ export function listPublishTasks(params: PaginationParams & { status?: string; c
 }
 export function createPublishTask(data: Partial<PublishTaskItem> & { draft_id: number }) {
   return request.post<any, ApiResponse<PublishTaskItem>>(`${U}/publish`, data)
+}
+export function runPublish(task_ids: number[]) {
+  return request.post<any, ApiResponse<{ started: number; results: any[] }>>(`${U}/publish/run`, {
+    task_ids,
+  })
+}
+export function autoPublish(taskId: number) {
+  return request.post<any, ApiResponse<PublishTaskItem>>(`${U}/publish/${taskId}/auto`)
 }
 export function retryPublishTask(taskId: number) {
   return request.post<any, ApiResponse<PublishTaskItem>>(`${U}/publish/${taskId}/retry`)
