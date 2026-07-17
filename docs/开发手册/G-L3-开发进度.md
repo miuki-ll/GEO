@@ -39,11 +39,11 @@
 |----|-----|
 | **更新日期** | 2026-07-17 |
 | **当前周** | W1 |
-| **A 当前任务** | A3（LLM Gateway）· 建议下一做 |
-| **B 当前任务** | B0（可 MOCK 先行） |
+| **A 当前任务** | A2（KB CRUD）准备中 |
+| **B 当前任务** | B0（可 MOCK 先行）· **G1 可验** |
 | **全局阻塞** | **B1 真接 WAIT_FOR A7+A8**；**G4 WAIT_FOR A7**；B5 AUTO WAIT_FOR A5；**A0 已 done → B4 可接禁词** |
-| **下一联调 GATE** | G1（信封+JWT）；G2/G4 暂不可绿 |
-| **备注** | A0 NOTIFY 待你转发 B；详见 B 手册 §3.1–§3.3 · **§11 测试**；SEMI/B2 可先做 |
+| **下一联调 GATE** | G1（信封+JWT）✅ 可验；G2/G4 暂不可绿 |
+| **备注** | A0+A1 已通知 B；详见 B 手册 §3.1–§3.3 · **§11 测试**；SEMI/B2 可先做 |
 
 ---
 
@@ -51,8 +51,8 @@
 
 | ID | 任务 | 状态 | 开始日 | 完成日 | 阻塞原因（WAIT_FOR） | 备注 / 交付物 |
 |----|------|------|--------|--------|----------------------|---------------|
-| A0 | IndustryPack 基类 + beauty_local 规则簿 | `done` | 2026-07-17 | 2026-07-17 | | tests: A0 pass · NOTIFY 待你转发 → B4/B1 |
-| A1 | 注册/登录/JWT/RBAC/租户隔离 | `todo` | | | | NOTIFY B → 鉴权 |
+| A0 | IndustryPack 基类 + beauty_local 规则簿 | `done` | 2026-07-17 | 2026-07-17 | | tests: A0 pass · 已通知 B → B4/B1 |
+| A1 | 注册/登录/JWT/RBAC/租户隔离 | `done` | 2026-07-17 | 2026-07-17 | | tests: A1 pass · 已通知 B → G1 |
 | A2 | KB CRUD（Fact/FAQ/Signal） | `todo` | | | | NOTIFY B → fact_refs |
 | A3 | LLM Gateway × 4 Adapter | `todo` | | | | NOTIFY B → chat() |
 | A4 | Faiss per-tenant | `todo` | | | | |
@@ -102,7 +102,7 @@
 
 | GATE | 名称 | 需要 A | 需要 B | 状态 | 通过日 | 阻塞 / 备注 |
 |------|------|--------|--------|------|--------|-------------|
-| G1 | 信封 + JWT | A1 | B 受保护 API 可鉴权 | `todo` | | |
+| G1 | 信封 + JWT | A1 | B 受保护 API 可鉴权 | `ready` | | NOTIFY B 已发：B 带 JWT 调 GET /user/enterprise/profile 应 200 |
 | G2 | 诊断 → 方案包 | A7+A8 真数据 | B1 读真 API | `todo` | | 约 W4 |
 | G3 | 闸门 → 发布 | A0+A5 | B4+B5 | `todo` | | 约 W6 |
 | G4 | T0/T1 Δ | A7 T0 | B5+B6 T1 | `todo` | | 约 W6 |
@@ -173,7 +173,7 @@
 
 | 轨 | todo | doing | blocked | done | 合计 |
 |----|:----:|:-----:|:-------:|:----:|:----:|
-| A（A0–A9） | 9 | 0 | 0 | 1 | 10 |
+| A（A0–A9） | 7 | 0 | 0 | 2 | 10 |
 | B（B0–B8） | 9 | 0 | 0 | 0 | 9 |
 | GATE（G1–G5） | 5 | 0 | 0 | 0 | 5 |
 | AC（01–15） | 15 | 0 | 0 | 0 | 15 |

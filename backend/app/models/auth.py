@@ -21,7 +21,7 @@ class Enterprise(Base, TimestampMixin):
     __tablename__ = "enterprises"
 
     id = Column(Integer, primary_key=True, index=True)
-    name = Column(String(200), nullable=False)
+    name = Column(String(200), nullable=False, unique=True, index=True)
     industry = Column(String(50), default="beauty_local", index=True)
     industry_pack = Column(String(50), default="beauty_local", index=True)
     license_no = Column(String(100))

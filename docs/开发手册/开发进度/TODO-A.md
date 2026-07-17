@@ -1,7 +1,7 @@
 # 开发者 A · 实施 TODO
 
-> **版本**：v2.0 | **日期**：2026-07-16
-> **图例**：⬜ todo 🟦 doing 🟩 done 🔴 blocked ⚠️ 需新建
+>> **版本**：v2.1 | **日期**：2026-07-17
+> **图例**：⬜ todo 🟦 doing 🟩 done 🔴 blocked ⚠️ 需新建 🔍 审查者验收（无 step，由 Claude 执行）
 
 ---
 
@@ -30,30 +30,24 @@
 ---
 
 ### A1 · 注册/登录/JWT/RBAC/租户隔离
-> **现状态**：代码已有，auth 路由 + security + deps 全
+> **现状态**：代码已有，需 3 处改动 + 验证 + 前端对接
 > **涉及文件**：
 
-| 文件 | 作用 |
-|------|------|
-| `backend/app/api/v1/auth.py` | register/login 路由 |
-| `backend/app/core/security.py` | JWT 签发/校验 + oauth2_scheme + get_current_user |
-| `backend/app/api/deps/auth.py` | re-export 鉴权依赖 |
-| `backend/app/api/common.py` | get_current_active_user |
-| `backend/app/service/auth_service.py` | EnterpriseService + UserService |
-| `backend/app/schemas/auth.py` | UserCreate/Login/TokenPayload/EnterpriseUpdate |
-| `backend/app/models/auth.py` | Enterprise(含 settings/target_engines) / User / RolePermission / Brand / Store / Service |
-| `backend/app/api/v1/user/enterprise.py` | profile CRUD + members |
-| `backend/app/api/v1/user/kb.py` | KB CRUD（租户隔离验证目标） |
-| `backend/app/api/v1/user/onboarding.py` | 入驻路由 |
-| `backend/app/api/v1/user/diagnosis.py` | 诊断路由 |
+| 文件 | 作用 | 状态 |
+|------|------|:--:|
+| `backend/app/api/v1/auth.py` | register/login 路由 | 🛠️ 合并登录端点 |
+| `backend/app/core/security.py` | JWT 签发/校验 + get_current_user | 🟢 不改 |
+| `backend/app/service/auth_service.py` | EnterpriseService + UserService | 🛠️ 加重名检查 |
+| `backend/app/schemas/auth.py` | UserCreate/Login/TokenPayload | 🟢 不改 |
+| `backend/app/models/auth.py` | Enterprise / User / RolePermission | 🛠️ name 加 unique |
+| `frontend/src/views/Login.vue` | 登录页 | 🛠️ 切真实 API |
+| `frontend/src/views/Register.vue` | 注册页 | 🛠️ 切真实 API |
 
-- [ ] **[A1-1](./steps/A1-1.md)** — 核实 register 流程：Enterprise+User+JWT+TokenPayload
-- [ ] **[A1-2](./steps/A1-2.md)** — 核实 login（OAuth2 + JSON）+ /me + /refresh
-- [ ] **[A1-3](./steps/A1-3.md)** — 核实 JWT 依赖注入链：oauth2_scheme → get_current_user → enterprise_id
-- [ ] **[A1-4](./steps/A1-4.md)** — 验证租户隔离：跨企业访问 → 403（覆盖 enterprise/kb/onboarding/diagnosis）
-- [ ] **[A1-5](./steps/A1-5.md)** — 核实 target_engines 更新通路（settings JSON）
-- [ ] **[A1-6](./steps/A1-6.md)** — ⚠️ 新建 `test_a1_auth.py`，5 条用例全 PASS
-- [ ] **[A1-7](./steps/A1-7.md)** — 验收：更新进度表 + git push + 发 NOTIFY B
+- [x] **[A1-1](./steps/A1-1.md)** — 🛠️ 合并登录端点为 JSON only + Enterprise.name 唯一约束
+- [x] **[A1-2](./steps/A1-2.md)** — 🛠️ Login.vue / Register.vue 切真实 API
+- [x] **[A1-3](./steps/A1-3.md)** — 🔍 全链路验证：register → login → JWT → 租户隔离 → target_engines
+- [x] **[A1-4](./steps/A1-4.md)** — 🆕 新建 `test_a1_auth.py`，6 条用例全 PASS
+- [ ] **🔍 A1 验收（审查者）** — 读执行记录 + git diff + 跑测试 → 更新进度表 + NOTIFY
 
 ---
 
@@ -73,7 +67,7 @@
 - [ ] **[A2-2](./steps/A2-2.md)** — 核实 kb_faqs / kb_signals / kb_externals 各 5 端点
 - [ ] **[A2-3](./steps/A2-3.md)** — 核实 KB Summary 聚合 + kb_freshness + thin_kb_check
 - [ ] **[A2-4](./steps/A2-4.md)** — ⚠️ 新建 `test_a2_kb.py`，T-A2-01~06 全 PASS
-- [ ] **[A2-5](./steps/A2-5.md)** — 验收：更新进度表 + git push + 发 NOTIFY B
+- [ ] **🔍 A2 验收（审查者）** — 读执行记录 + git diff + 跑测试 → 更新进度表 + NOTIFY
 
 ---
 
@@ -93,7 +87,7 @@
 - [ ] **[A3-2](./steps/A3-2.md)** — 核实 gateway.chat() fallback 逻辑 + simple_prompt()
 - [ ] **[A3-3](./steps/A3-3.md)** — 核实 gateway.embed() + 错误处理 + 重试
 - [ ] **[A3-4](./steps/A3-4.md)** — ⚠️ 新建 `test_a3_gateway.py`，T-A3-01~05 全 PASS
-- [ ] **[A3-5](./steps/A3-5.md)** — 验收：更新进度表 + git push + 发 NOTIFY B
+- [ ] **🔍 A3 验收（审查者）** — 读执行记录 + git diff + 跑测试 → 更新进度表 + NOTIFY
 
 ---
 
@@ -111,7 +105,7 @@
 - [ ] **[A4-1](./steps/A4-1.md)** — ⚠️ 新建 `faiss_service.py`：FaissService 核心类（add/search/delete + 延迟加载 embedding）
 - [ ] **[A4-2](./steps/A4-2.md)** — 补全：租户隔离验证 + `faiss_indexes` 元数据写入 + rebuild
 - [ ] **[A4-3](./steps/A4-3.md)** — ⚠️ 新建 `test_a4_faiss.py`，T-A4-01~03 全 PASS
-- [ ] **[A4-4](./steps/A4-4.md)** — 验收：更新进度表 + git push + 发 NOTIFY B
+- [ ] **🔍 A4 验收（审查者）** — 读执行记录 + git diff + 跑测试 → 更新进度表 + NOTIFY
 
 ---
 
@@ -368,11 +362,11 @@
 | # | 文件路径 | 对应 Step |
 |---|----------|:---------:|
 | 1 | `backend/tests/a_track/test_a0_industry_pack.py` | A0-4 |
-| 2 | `backend/tests/a_track/test_a1_auth.py` | A1-6 |
-| 3 | `backend/tests/a_track/test_a2_kb.py` | A2-7 |
-| 4 | `backend/tests/a_track/test_a3_gateway.py` | A3-5 |
+| 2 | `backend/tests/a_track/test_a1_auth.py` | A1-4 |
+| 3 | `backend/tests/a_track/test_a2_kb.py` | A2-4 |
+| 4 | `backend/tests/a_track/test_a3_gateway.py` | A3-4 |
 | 5 | `backend/app/rag/faiss_service.py` | A4-1 |
-| 6 | `backend/tests/a_track/test_a4_faiss.py` | A4-5 |
+| 6 | `backend/tests/a_track/test_a4_faiss.py` | A4-3 |
 | 7 | `backend/tests/a_track/test_a5_onboarding.py` | A5-7 |
 | 8 | `backend/tests/a_track/test_a6_sse.py` | A6-5 |
 | 9 | `backend/tests/a_track/test_a7_diagnosis.py` | A7-9 |

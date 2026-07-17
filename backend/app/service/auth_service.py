@@ -27,6 +27,10 @@ logger = get_logger(__name__)
 class EnterpriseService:
     @staticmethod
     def create(db: Session, data: EnterpriseCreate) -> Enterprise:
+        # 检查企业名唯一
+        existing = db.query(Enterprise).filter(Enterprise.name == data.name).first()
+        if existing:
+            raise ValueError("该企业名称已被注册")
         ent = Enterprise(**data.model_dump())
         ent.status = "active"
         db.add(ent)

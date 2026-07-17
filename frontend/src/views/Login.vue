@@ -21,9 +21,6 @@
         还没有账号？
         <router-link to="/register">立即注册</router-link>
       </div>
-      <el-alert type="info" :closable="false" class="hint" show-icon>
-        MVP 阶段：S2 将实现真实登录。先用 <b>demo@geo.test / demo123456</b> 占位体验 UI 流程。
-      </el-alert>
     </div>
   </div>
 </template>
@@ -42,8 +39,8 @@ const formRef = ref<FormInstance>()
 const loading = ref(false)
 
 const form = reactive({
-  email: 'demo@geo.test',
-  password: 'demo123456',
+  email: '',
+  password: '',
 })
 
 const rules: FormRules = {
@@ -56,20 +53,17 @@ async function handleLogin() {
   if (!valid) return
   loading.value = true
   try {
-    userStore.setToken('demo-token-' + Date.now())
-    userStore.$patch({
-      user: {
-        id: 1,
-        enterprise_id: 1,
-        email: form.email,
-        full_name: 'Demo User',
-        role: 'owner',
-        is_active: true,
-      },
-    })
+    await userStore.login(form.email, form.password)
     ElMessage.success('登录成功')
     const redirect = (route.query.redirect as string) || '/outcomes'
     router.push(redirect)
+  } catch (e: any) {
+    // request 拦截器对 401 会 reject(new Error('Unauthorized'))，不一定保留 response
+    if (e?.response?.status === 401 || e?.message === 'Unauthorized') {
+      ElMessage.error('邮箱或密码错误')
+    } else {
+      ElMessage.error('网络错误，请稍后重试')
+    }
   } finally {
     loading.value = false
   }
@@ -128,8 +122,4 @@ async function handleLogin() {
     font-weight: 500;
   }
 }
-.hint {
-  margin-top: 22px;
-}
 </style>
-

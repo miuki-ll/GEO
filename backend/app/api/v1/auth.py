@@ -1,6 +1,5 @@
 """共用 · 认证授权 — 用户端 / 管理端均走此路由（对齐 TalentFlow app/api/v1/auth.py）。"""
 from fastapi import APIRouter, Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
@@ -37,13 +36,9 @@ def register(data: UserCreate, db: Session = Depends(get_db)):
 
 
 @router.post("/login", response_model=ResponseModel[TokenPayload])
-def login(
-    form_data: OAuth2PasswordRequestForm = Depends(),
-    db: Session = Depends(get_db),
-):
-    """OAuth2 表单登录（Swagger 兼容）；username 字段填邮箱。"""
+def login(data: UserLogin, db: Session = Depends(get_db)):
+    """登录：JSON body {email, password}，返回 JWT TokenPayload。"""
     try:
-        data = UserLogin(email=form_data.username, password=form_data.password)
         user = UserService.authenticate(db, data)
         if not user:
             raise HTTPException(
@@ -56,29 +51,7 @@ def login(
     except HTTPException:
         raise
     except Exception as e:
-        logger.exception("login 失败 username=%s: %s", form_data.username, e)
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="登录失败，请稍后重试",
-        ) from e
-
-
-@router.post("/login/json-login", response_model=ResponseModel[TokenPayload])
-def json_login(data: UserLogin, db: Session = Depends(get_db)):
-    """JSON 体登录（前端常用）；body 为 { email, password }。"""
-    try:
-        user = UserService.authenticate(db, data)
-        if not user:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="邮箱或密码错误",
-            )
-        token = UserService.issue_token(user)
-        return ResponseModel(data=token)
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.exception("json_login 失败 email=%s: %s", data.email, e)
+        logger.exception("login 失败 email=%s: %s", data.email, e)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="登录失败，请稍后重试",
