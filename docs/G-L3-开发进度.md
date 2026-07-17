@@ -1,6 +1,6 @@
 # GEO 开发进度表（双人同步）
 
-> **版本**：v1.2 | **日期**：2026-07-16  
+> **版本**：v1.3 | **日期**：2026-07-17  
 > **用途**：两人通过 **git 提交本文件** 同步进度；Agent / 人开工前先读此表。  
 > **任务定义与依赖**：见 [G-L3-双人任务拆分.md](G-L3-双人任务拆分.md)（WAIT_FOR / NOTIFY / GATE）  
 > **开发者 B 专用手册**：[G-L3-开发者B任务手册.md](G-L3-开发者B任务手册.md)（§3 顺序阻塞 · **§11 测试强制验收**）  
@@ -34,13 +34,13 @@
 
 | 项 | 值 |
 |----|-----|
-| **更新日期** | 2026-07-16 |
-| **当前周** | W1 |
+| **更新日期** | 2026-07-17 |
+| **当前周** | W2（MOCK 主链已到发布） |
 | **A 当前任务** | A0（底座）· fixture 官方四文件未交付 |
-| **B 当前任务** | B0/B1/B2 MOCK 已实现待你前端手验 |
-| **全局阻塞** | **B1 真接 WAIT_FOR A7+A8**；**G4 WAIT_FOR A7**；官方 **A-fixture** 四文件未交付 |
-| **下一联调 GATE** | G1（信封+JWT）；G2/G4 暂不可绿 |
-| **备注** | 分支 `feat/b-track-b0-b2`：pytest b_track 7 passed；前端可看 `/strategy-pack` `/content/drafts`（demo 登录） |
+| **B 当前任务** | **B5 doing**（SEMI 可测；AUTO MOCK；下一 B6） |
+| **全局阻塞** | **B1 真接 WAIT_FOR A7+A8**；**B3 真溯源 WAIT_FOR A2+A3**；**B5 AUTO 真发 WAIT_FOR A5**；**G4 WAIT_FOR A7**；官方 **A-fixture** 未交付 |
+| **下一联调 GATE** | G1（信封+JWT）；G2/G3/G4 仍不可绿（缺 A 侧） |
+| **备注** | 分支 `feat/b-track-b0-b2`：B0–B4 MOCK `done`；B5 SEMI+AUTO MOCK 已接；DB-first（`geo_db`）；手验：登录→方案包确认→草稿机审/人审→发布页 |
 
 ---
 
@@ -80,18 +80,18 @@
 
 | ID | 任务 | 状态 | 开始日 | 完成日 | 阻塞原因（WAIT_FOR） | 备注 / 交付物 / 测试 |
 |----|------|------|--------|--------|----------------------|----------------------|
-| B0 | 方案包/草稿页骨架（fixture mock） | `doing` | 2026-07-16 | | MOCK_OK · 官方 A-fixture 未到 | tests: B0 pytest T-B0-03/04 pass；待手测 T-B0-01/02 |
-| B1 | 方案包：persona/scenario/权重 0.6+0.4 | `doing` | 2026-07-16 | | 真接 `WAIT_FOR A7+A8` | tests: B1 MOCK pytest pass；待手测 T-B1-05 |
-| B2 | strategy-pack confirm | `doing` | 2026-07-16 | | | tests: B2 契约单测 pass；全链路 confirm 需后端+JWT |
-| B3 | 内容工厂 + RAG 切片 | `todo` | | | 真接 `WAIT_FOR A2+A3` · MOCK_OK | 见手册 §11.4 |
-| B4 | 5 项机审 + 人闸门 + approval_log | `todo` | | | `WAIT_FOR A0` 禁词/合规 | 见手册 §11.4 |
-| B5 | 发布 AUTO + 小红书 SEMI | `todo` | | | 真发托管页 `WAIT_FOR A5` | SEMI 可先测；AUTO 另测 |
-| B6 | Core/Probe + T1 + T0/T1 Δ + Engine 联动 | `todo` | | | `WAIT_FOR A7`（T0）；验 AC-13 时 `WAIT_FOR A9` | 见手册 §11.4 |
+| B0 | 方案包/草稿页骨架（fixture mock） | `done` | 2026-07-16 | 2026-07-16 | MOCK_OK · 官方 A-fixture 未到（手写同结构） | tests: B0 MOCK pass；五区 UI + `/strategy-pack` 骨架 |
+| B1 | 方案包：persona/scenario/权重 0.6+0.4 | `done` | 2026-07-16 | 2026-07-16 | 真接仍 `WAIT_FOR A7+A8`（另 A3/A0） | tests: B1 MOCK pass；权重 0.6+0.4；DB-first draft API |
+| B2 | strategy-pack confirm | `done` | 2026-07-16 | 2026-07-16 | | tests: B2 pass；confirm 落库 + 触发内容生成 |
+| B3 | 内容工厂 + RAG 切片 | `done` | 2026-07-16 | 2026-07-17 | 真接 `WAIT_FOR A2+A3` · MOCK_OK | tests: B3 pass；7 段式 + `rag_slices`；`/content/drafts` 预览 |
+| B4 | 5 项机审 + 人闸门 + approval_log | `done` | 2026-07-16 | 2026-07-17 | 禁词长期 `WAIT_FOR A0`（暂读 beauty_local 模板） | tests: B4 pass；reject→draft；bulk-approve 写 `approval_logs`；`target_type=strategy_pack+content` |
+| B5 | 发布 AUTO + 小红书 SEMI | `doing` | 2026-07-17 | | 真发托管页 `WAIT_FOR A5`（SEMI 不阻塞） | tests: B5 MOCK pass；SEMI 五字段 `export_package`；AUTO MOCK URL；`POST /publish/run`；人审后 `ensure_task`；前端 `/publish/tasks` |
+| B6 | Core/Probe + T1 + T0/T1 Δ + Engine 联动 | `todo` | | | `WAIT_FOR A7`（T0）；验 AC-13 时 `WAIT_FOR A9` | 下一开工项 |
 | B7 | 效果舱 Dashboard | `todo` | | | `WAIT_FOR A7`（T0 KPI） | 见手册 §11.4 |
-| B8 | 前端：方案包/草稿/发布/监测/效果舱 | `todo` | | | 真接继承上表 | 见手册 §11.2 |
+| B8 | 前端：方案包/草稿/发布/监测/效果舱 | `doing` | 2026-07-16 | | 真接继承上表 · `MOCK_OK` | 已接：`/strategy-pack` · `/content/drafts` · `/publish/tasks`（API/DB）；监测/效果舱未做 |
 
 **B 过线**：勾选 scenario→机审→人闸门→AUTO+SEMI→效果舱见 Δ（详见 B 手册 §9）；**相关 Bx §11 测试均 PASS**  
-**B 过线状态**：`todo`
+**B 过线状态**：`todo`（MOCK 主链至 B5；缺 B6/B7 与 A 侧真数据）
 
 ---
 
@@ -133,8 +133,8 @@
 
 | 周 | 结束日 | A 完成项 | B 完成项 | GATE | 风险 |
 |:--:|--------|---------|---------|------|------|
-| W1 | | | | G1? | |
-| W2 | | | | | |
+| W1 | 2026-07-16 | （A 未更新） | B0–B2 MOCK；B3 开工 | G1? | 缺官方 fixture / JWT 真鉴权 |
+| W2 | （进行中） | | B3–B4 done；B5 doing；B8 部分 | | B5 AUTO / G3 等 A5；真接等 A7+A8 |
 | W3 | | | | | |
 | W4 | | | | G2? | |
 | W5 | | | | | |
@@ -170,12 +170,13 @@
 | 轨 | todo | doing | blocked | done | 合计 |
 |----|:----:|:-----:|:-------:|:----:|:----:|
 | A（A0–A9） | 10 | 0 | 0 | 0 | 10 |
-| B（B0–B8） | 9 | 0 | 0 | 0 | 9 |
+| B（B0–B8） | 2 | 2 | 0 | 5 | 9 |
 | GATE（G1–G5） | 5 | 0 | 0 | 0 | 5 |
 | AC（01–15） | 15 | 0 | 0 | 0 | 15 |
 
-> 改状态后请同步更新本统计数字，便于一眼看进度。
+> 改状态后请同步更新本统计数字，便于一眼看进度。  
+> **B 统计说明（2026-07-17）**：done = B0–B4（5）；doing = B5 + B8（2）；todo = B6 + B7（2）。真接依赖仍写在各行 WAIT_FOR，不另计 blocked。
 
 ---
 
-*G-L3-开发进度表 v1.2 · B 轨 done 须手册 §11 测试通过 · 以 git 为本同步源*
+*G-L3-开发进度表 v1.3 · B 轨 done 须手册 §11 测试通过 · 以 git 为本同步源*
