@@ -102,17 +102,30 @@ export interface ContentDraftItem {
   status: 'draft' | 'reviewing' | 'ready' | 'published' | 'archived'
 }
 
+export interface PublishExportPackage {
+  title: string
+  body: string
+  tags: string[]
+  cover_hint: string
+  steps: string[]
+}
+
 export interface PublishTaskItem {
   id: number
   draft_id: number
+  content_asset_id?: number
+  title?: string
   channel: string
   mode: 'auto' | 'semi' | 'guided'
   target_url?: string
   published_url?: string
-  status: 'pending' | 'running' | 'success' | 'failed'
+  published_id?: string
+  status: 'pending' | 'running' | 'published' | 'failed' | 'success'
   retry_count: number
   error_message?: string
   published_at?: string
+  export_package?: PublishExportPackage | null
+  auto_result?: Record<string, any> | null
 }
 
 export interface MonitorResultItem {

@@ -40,7 +40,7 @@
 | **B 当前任务** | **B5 doing**（SEMI 可测；AUTO MOCK；下一 B6） |
 | **全局阻塞** | **B1 真接 WAIT_FOR A7+A8**；**B3 真溯源 WAIT_FOR A2+A3**；**B5 AUTO 真发 WAIT_FOR A5**；**G4 WAIT_FOR A7**；官方 **A-fixture** 未交付 |
 | **下一联调 GATE** | G1（信封+JWT）；G2/G3/G4 仍不可绿（缺 A 侧） |
-| **备注** | 分支 `feat/b-track-b0-b2`：B0–B4 MOCK `done`；B5 SEMI+AUTO MOCK 已接；DB-first（`geo_db`）；手验：登录→方案包确认→草稿机审/人审→发布页 |
+| **备注** | 分支 `feat/b-track-b0-b2`：B0–B4 MOCK `done`；B5 SEMI+AUTO MOCK 已接；已还 TD-01/02/10/11（见 [G-L3-B轨技术债.md](G-L3-B轨技术债.md)）；DB-first（`geo_db`） |
 
 ---
 
@@ -82,10 +82,10 @@
 |----|------|------|--------|--------|----------------------|----------------------|
 | B0 | 方案包/草稿页骨架（fixture mock） | `done` | 2026-07-16 | 2026-07-16 | MOCK_OK · 官方 A-fixture 未到（手写同结构） | tests: B0 MOCK pass；五区 UI + `/strategy-pack` 骨架 |
 | B1 | 方案包：persona/scenario/权重 0.6+0.4 | `done` | 2026-07-16 | 2026-07-16 | 真接仍 `WAIT_FOR A7+A8`（另 A3/A0） | tests: B1 MOCK pass；权重 0.6+0.4；DB-first draft API |
-| B2 | strategy-pack confirm | `done` | 2026-07-16 | 2026-07-16 | | tests: B2 pass；confirm 落库 + 触发内容生成 |
+| B2 | strategy-pack confirm | `done` | 2026-07-16 | 2026-07-16 | | tests: B2 pass（TD-01：service 级 T-B2-01～05）；confirm 落库 + 触发内容生成；debt: TD-01 cleared |
 | B3 | 内容工厂 + RAG 切片 | `done` | 2026-07-16 | 2026-07-17 | 真接 `WAIT_FOR A2+A3` · MOCK_OK | tests: B3 pass；7 段式 + `rag_slices`；`/content/drafts` 预览 |
-| B4 | 5 项机审 + 人闸门 + approval_log | `done` | 2026-07-16 | 2026-07-17 | 禁词长期 `WAIT_FOR A0`（暂读 beauty_local 模板） | tests: B4 pass；reject→draft；bulk-approve 写 `approval_logs`；`target_type=strategy_pack+content` |
-| B5 | 发布 AUTO + 小红书 SEMI | `doing` | 2026-07-17 | | 真发托管页 `WAIT_FOR A5`（SEMI 不阻塞） | tests: B5 MOCK pass；SEMI 五字段 `export_package`；AUTO MOCK URL；`POST /publish/run`；人审后 `ensure_task`；前端 `/publish/tasks` |
+| B4 | 5 项机审 + 人闸门 + approval_log | `done` | 2026-07-16 | 2026-07-17 | 禁词长期 `WAIT_FOR A0`（暂读 beauty_local 模板） | tests: B4 pass；debt: TD-04 cleared（五键 true=通过，含 forbidden_words）；reject→draft；`target_type=strategy_pack+content` |
+| B5 | 发布 AUTO + 小红书 SEMI | `doing` | 2026-07-17 | | 真发托管页 `WAIT_FOR A5`（SEMI 不阻塞） | tests: B5 MOCK pass（TD-01：含 `run_batch`）；SEMI 五字段；AUTO MOCK URL；debt: TD-01/02/10/11 见技术债表 |
 | B6 | Core/Probe + T1 + T0/T1 Δ + Engine 联动 | `todo` | | | `WAIT_FOR A7`（T0）；验 AC-13 时 `WAIT_FOR A9` | 下一开工项 |
 | B7 | 效果舱 Dashboard | `todo` | | | `WAIT_FOR A7`（T0 KPI） | 见手册 §11.4 |
 | B8 | 前端：方案包/草稿/发布/监测/效果舱 | `doing` | 2026-07-16 | | 真接继承上表 · `MOCK_OK` | 已接：`/strategy-pack` · `/content/drafts` · `/publish/tasks`（API/DB）；监测/效果舱未做 |

@@ -1,6 +1,8 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, HTTPException, status, Query, Body
 from sqlalchemy.orm import Session
 from typing import Optional, List
+
+from pydantic import BaseModel
 
 from app.core.config import settings
 from app.core.db import get_db
@@ -84,8 +86,10 @@ def generate_drafts(sid: int, user: User = Depends(get_current_active_user), db:
         items = ContentService.generate_drafts_for_scenario(db, user.enterprise_id, sid)
     except ValueError as e:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, str(e))
-    return {"code": 0, "message": "", "data": {
-        "items": [ContentDraftResponse.model_validate(ContentService._load(i)) for i in items],
+    from app.content_factory import draft_api_view
+
+    return {"code": 0, "message": "ok", "data": {
+        "items": [draft_api_view(ContentService._load(i)) for i in items],
         "total": len(items), "page": 1, "page_size": len(items)}}
 
 
@@ -100,6 +104,10 @@ def list_drafts(
     user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db),
 ):
+    if settings.is_dev:
+        from app.dev_seed import ensure_tenant_seed_data
+
+        ensure_tenant_seed_data(db, user.enterprise_id, user.id)
     items, total = ContentService.list(
         db, user.enterprise_id,
         ContentDraftListParams(
@@ -108,17 +116,21 @@ def list_drafts(
             keyword=keyword,
         ),
     )
-    return {"code": 0, "message": "", "data": {
-        "items": [ContentDraftResponse.model_validate(ContentService._load(i)) for i in items],
+    from app.content_factory import draft_api_view
+
+    return {"code": 0, "message": "ok", "data": {
+        "items": [draft_api_view(ContentService._load(i)) for i in items],
         "total": total, "page": page, "page_size": page_size}}
 
 
-@router.get("/drafts/{did}", response_model=ContentDraftResponse)
+@router.get("/drafts/{did}")
 def get_draft(did: int, user: User = Depends(get_current_active_user), db: Session = Depends(get_db)):
     d = ContentService.get(db, user.enterprise_id, did)
     if not d:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "草稿不存在")
-    return d
+    from app.content_factory import draft_api_view
+
+    return {"code": 0, "message": "ok", "data": draft_api_view(d)}
 
 
 @router.post("/drafts", response_model=ContentDraftResponse)
@@ -150,13 +162,16 @@ def delete_draft(did: int, user: User = Depends(get_current_active_user), db: Se
 
 # ============ 审核（机器 + 人工）============
 
-@router.post("/drafts/{did}/machine-review", response_model=ContentDraftResponse, summary="机器审：fact_verify + compliance")
+@router.post("/drafts/{did}/machine-review", summary="机器审：5 项检测链")
 @require_role(["owner", "admin", "editor"])
 def machine_review(did: int, user: User = Depends(get_current_active_user), db: Session = Depends(get_db)):
     try:
-        return ContentService.run_machine_review(db, user.enterprise_id, did)
+        item = ContentService.run_machine_review(db, user.enterprise_id, did)
     except ValueError as e:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, str(e))
+    from app.content_factory import draft_api_view
+
+    return {"code": 0, "message": "ok", "data": draft_api_view(item)}
 
 
 @router.post("/drafts/{did}/fact-verify", response_model=FactVerifyReport, summary="fact_verify 单跑")
@@ -177,29 +192,51 @@ def compliance(did: int, user: User = Depends(get_current_active_user), db: Sess
         raise HTTPException(status.HTTP_400_BAD_REQUEST, str(e))
 
 
-@router.post("/drafts/{did}/approve", response_model=ContentDraftResponse, summary="人审通过（闸门 3）")
-@require_role(["owner", "admin", "editor"])
-def human_approve(did: int, note: Optional[str] = Query(None), user: User = Depends(get_current_active_user), db: Session = Depends(get_db)):
-    try:
-        return ContentService.human_approve(db, user.enterprise_id, did, user.id, note)
-    except ValueError as e:
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, str(e))
+class RejectBody(BaseModel):
+    reason: Optional[str] = None
 
 
-@router.post("/drafts/{did}/reject", response_model=ContentDraftResponse, summary="人审驳回")
+@router.post("/drafts/{did}/approve", summary="人审通过（闸门）")
 @require_role(["owner", "admin", "editor"])
-def human_reject(did: int, note: Optional[str] = Query(None), user: User = Depends(get_current_active_user), db: Session = Depends(get_db)):
+def human_approve(
+    did: int,
+    note: Optional[str] = Query(None),
+    user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db),
+):
     try:
-        return ContentService.human_reject(db, user.enterprise_id, did, user.id, note)
+        item = ContentService.human_approve(db, user.enterprise_id, did, user.id, note)
     except ValueError as e:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, str(e))
+    from app.content_factory import draft_api_view
+
+    return {"code": 0, "message": "ok", "data": draft_api_view(item)}
+
+
+@router.post("/drafts/{did}/reject", summary="人审驳回 → draft")
+@require_role(["owner", "admin", "editor"])
+def human_reject(
+    did: int,
+    body: Optional[RejectBody] = None,
+    note: Optional[str] = Query(None),
+    user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db),
+):
+    reason = (body.reason if body else None) or note
+    try:
+        item = ContentService.human_reject(db, user.enterprise_id, did, user.id, reason)
+    except ValueError as e:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, str(e))
+    from app.content_factory import draft_api_view
+
+    return {"code": 0, "message": "ok", "data": {"id": item.id, "status": item.status, **draft_api_view(item)}}
 
 
 @router.post("/drafts/bulk-approve", response_model=ApiResponse, summary="草稿批量审批")
 @require_role(["owner", "admin", "editor"])
 def bulk_approve(req: BulkApproveRequest, user: User = Depends(get_current_active_user), db: Session = Depends(get_db)):
-    ids = ContentService.bulk_approve(db, user.enterprise_id, user.id, req)
-    return {"code": 0, "message": f"已审批 {len(ids)} 条", "data": {"approved": ids, "approved_ids": ids}}
+    data = ContentService.bulk_approve(db, user.enterprise_id, user.id, req)
+    return {"code": 0, "message": f"已审批 {data.get('approved', 0)} 条", "data": data}
 
 
 @router.get("/drafts/{did}/approval-logs", response_model=PaginatedResponse, summary="草稿审阅审计日志")

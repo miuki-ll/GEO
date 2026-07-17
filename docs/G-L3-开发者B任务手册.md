@@ -421,7 +421,7 @@ B4 人闸门 + B5 发布已达联调标准。
   ],
   "machine_review": {
     "fact_verify": true,
-    "forbidden_words": false,
+    "forbidden_words": true,
     "cross_validation": true,
     "entity_consistency": true,
     "rag_readability": true
@@ -430,6 +430,7 @@ B4 人闸门 + B5 发布已达联调标准。
 }
 ```
 
+> 五键语义：`true` = 该项通过；其中 `forbidden_words: true` = 未命中禁词（TD-04 定稿，与契约一致）。
 | API | 输入 | 输出 |
 |-----|------|------|
 | `POST .../bulk-approve` | `{ "ids": [1,2,3] }` | `{ "approved": 3, "failed": [], "next_route": "/publish/tasks" }` + `approval_logs` |

@@ -38,3 +38,33 @@ celery_app.conf.update(
 
 import app.tasks  # noqa: E402,F401  -- register tasks on worker startup
 
+from celery.signals import worker_process_init, worker_process_shutdown
+
+
+def _worker_app_stub():
+    from types import SimpleNamespace
+
+    return SimpleNamespace(state=SimpleNamespace(resources={}))
+
+
+@worker_process_init.connect
+def _on_worker_process_init(**_kwargs):
+    import asyncio
+    import importlib
+    import os
+
+    os.environ.setdefault("APP_PROCESS_ROLE", "worker")
+    from app.infrastructure.bootstrap.init_manager import auto_init
+
+    importlib.import_module("app.infrastructure.bootstrap.registrations.register_all")
+    asyncio.run(auto_init.start(_worker_app_stub()))
+
+
+@worker_process_shutdown.connect
+def _on_worker_process_shutdown(**_kwargs):
+    import asyncio
+
+    from app.infrastructure.bootstrap.init_manager import auto_init
+
+    asyncio.run(auto_init.stop())
+

@@ -6,7 +6,7 @@ from typing import Any, Dict, List, Optional, Tuple
 from sqlalchemy.orm import Session
 
 from app.core.logging_config import get_logger
-from app.models import StrategyPack, Scenario, ContentAsset
+from app.models import StrategyPack, Scenario
 from app.schemas.business import (
     StrategyPackCreate,
     StrategyPackUpdate,
@@ -220,18 +220,17 @@ class StrategyPackService:
                 db.add(sc)
                 db.flush()
 
-            asset = ContentAsset(
-                enterprise_id=enterprise_id,
+            # B3：confirm 触发内容工厂（固定链）；TODO(WAIT_FOR: A2+A3)
+            from app.service.content_service import ContentService
+
+            ContentService.generate_for_unit(
+                db,
+                enterprise_id,
                 scenario_id=sc.id,
+                user_query=c["user_query"],
                 channel=c.get("channel") or "hosted",
                 skill=c.get("skill") or "faq",
-                title=c["user_query"],
-                content=f"（待 B3 生成）{c['user_query']}",
-                fact_refs=[],
-                status="draft",
-                human_review_status="pending",
             )
-            db.add(asset)
 
         pack.status = "confirmed"
         pack.confirmed_at = datetime.utcnow()

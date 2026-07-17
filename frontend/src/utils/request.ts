@@ -36,6 +36,10 @@ request.interceptors.response.use(
     }
     if (res.code === 401) {
       const userStore = useUserStore()
+      // demo-token 占位登录：不弹「过期」、不清本地态（等 A1 真 JWT）
+      if (userStore.token?.startsWith('demo-token-')) {
+        return Promise.reject(new Error(res.message || 'Unauthorized'))
+      }
       userStore.logout()
       ElMessageBox.confirm('登录状态已过期，请重新登录', '提示', {
         confirmButtonText: '重新登录',
@@ -65,6 +69,9 @@ request.interceptors.response.use(
       (status === 500 ? '服务器内部错误' : '网络错误，请稍后再试')
     if (status === 401) {
       const userStore = useUserStore()
+      if (userStore.token?.startsWith('demo-token-')) {
+        return Promise.reject(new Error(errData?.message || 'Unauthorized'))
+      }
       userStore.logout()
       const path = window.location.pathname
       if (path !== '/login' && path !== '/register') {

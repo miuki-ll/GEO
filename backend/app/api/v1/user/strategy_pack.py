@@ -54,6 +54,10 @@ def list_packs(
 
 @router.get("/draft")
 def get_draft(user: User = Depends(get_current_active_user), db: Session = Depends(get_db)):
+    if settings.is_dev:
+        from app.dev_seed import ensure_tenant_seed_data
+
+        ensure_tenant_seed_data(db, user.enterprise_id, user.id)
     pack = StrategyPackService.ensure_draft_default(db, user.enterprise_id, user.id)
     return {"code": 0, "message": "ok", "data": StrategyPackService.draft_view(pack)}
 

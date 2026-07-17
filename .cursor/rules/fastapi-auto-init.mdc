@@ -1,0 +1,43 @@
+---
+description: FastAPI 全局资源用 AutoInitManager 统一 init/stop，禁止散落 lifespan
+globs: backend/app/**/*.py
+alwaysApply: false
+---
+
+# FastAPI 启动布局：AutoInitManager
+
+权威规格：`docs/specs/SPEC-auto-init-manager.md`（移植自 talentflow AutoInitManager）。
+
+## 目录（必须）
+
+```
+backend/app/infrastructure/bootstrap/
+  init_manager.py              # AutoInitManager + 单例 auto_init
+  deps.py                      # get_resources
+  registrations/
+    register_all.py            # import 时副作用 register_all()
+    database.py / …            # 按资源拆分钩子
+```
+
+## 挂接（必须同一套）
+
+| 进程 | 入口 | 行为 |
+|------|------|------|
+| API | `main.py` lifespan | `await auto_init.start(app)` → yield → `await auto_init.stop()`；**禁止**在 lifespan 内写 `import app.xxx`（会覆盖参数 `app`） |
+
+| Worker | `celery` signals | stub `app.state.resources` + `asyncio.run(start/stop)` |
+| Health | `/health/ready` | 读 `auto_init.get_status()`，含 `auto_init` 检查项 |
+
+## 硬约束
+
+1. **禁止**在 `main.py` / Celery / 模块顶层再手写平行的全局 init 列表
+2. 新资源 → `registrations/<name>.py` + `register_all` 登记；设 `priority` / `roles` / `critical`
+3. 配置：`APP_PROCESS_ROLE`（`api`\|`worker`\|`mcp`）、`PRELOAD_MODELS_ON_STARTUP`
+4. 重资源（Embedding / Reranker / LangGraph）限制 `roles`，避免 API 误加载
+5. DB 等基础设施：`critical=True`、priority 靠前；可降级能力：`critical=False`
+6. 资源写入 `app.state.resources`；测试用 `reset_for_tests()`
+
+## 当前 GEO 状态
+
+骨架已落地：`infrastructure/bootstrap/` + lifespan/Celery/health 已挂接。  
+新资源只加 `registrations/<name>.py` 并在 `register_all` 登记；禁止再往 lifespan 堆逻辑。
