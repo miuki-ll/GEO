@@ -40,7 +40,13 @@
 | **B 当前任务** | **下一 B7** 效果舱（B6 MOCK 已收口） |
 | **全局阻塞** | **B1 真接 WAIT_FOR A7+A8**；**B3 WAIT_FOR A2+A3**；**B5 AUTO WAIT_FOR A5**；**G4/B7 真 KPI WAIT_FOR A7** |
 | **下一联调 GATE** | G1；G4 需 A7 T0 |
-| **备注** | B6 手验通过（种假 T0→触发 Core→Δ）；真引擎/真 T0 仍 MOCK；分支 `feat/b-track-b3-b5` |
+| **备注** | B6 手验通过；分支 `feat/b-track-b3-b5` · 见下方 **NOTIFY → A** |
+
+#### NOTIFY → 开发者 A（读进度表即可，无需另开聊天）
+
+> **【NOTIFY · B → A · 2026-07-18】**  
+> B6 监测壳已验收：Core/Probe、T1、假 T0、Δ 可演示。真 T0 / G4 仍等 **A7**。  
+> （另：B4 闸门 + B5 发布 MOCK 此前已可抽检；托管页真发仍等 **A5**。）
 
 ---
 
@@ -88,7 +94,7 @@
 | B3 | 内容工厂 + RAG 切片 | `done` | 2026-07-16 | 2026-07-17 | 真接 `WAIT_FOR A2+A3` · MOCK_OK | tests: B3 pass；7 段式 + `rag_slices`；`/content/drafts` 预览 |
 | B4 | 5 项机审 + 人闸门 + approval_log | `done` | 2026-07-16 | 2026-07-17 | | tests: B4 pass；debt: TD-04/TD-07 cleared（禁词走 `get_industry_pack().forbidden_words()`）；reject→draft；`target_type=strategy_pack+content` |
 | B5 | 发布 AUTO + 小红书 SEMI | `done` | 2026-07-17 | 2026-07-18 | 真发托管页仍 `WAIT_FOR A5`（SEMI 不阻塞） | tests: B5 MOCK pass；手验通过；SEMI 五字段 + AUTO MOCK；NOTIFY A：可对闸门→发布抽检 |
-| B6 | Core/Probe + T1 + T0/T1 Δ + Engine 联动 | `done` | 2026-07-18 | 2026-07-18 | 真 T0/Δ 仍 `WAIT_FOR A7`；AC-13 `WAIT_FOR A9` | tests: B6 MOCK pass；手验：种假 T0→触发 Core/Probe→Δ；profile Core≤20/Probe≤10；T1 `baseline=false`；NOTIFY A：可抽检监测壳 |
+| B6 | Core/Probe + T1 + T0/T1 Δ + Engine 联动 | `done` | 2026-07-18 | 2026-07-18 | 真 T0/Δ 仍 `WAIT_FOR A7`；AC-13 `WAIT_FOR A9` | tests: B6 MOCK pass；手验通过；**已 NOTIFY A（见冲刺摘要）** |
 | B7 | 效果舱 Dashboard | `todo` | | | `WAIT_FOR A7`（T0 KPI） | **下一开工项** |
 | B8 | 前端：方案包/草稿/发布/监测/效果舱 | `doing` | 2026-07-16 | | 真接继承上表 · `MOCK_OK` | 已接：方案包/草稿/发布/监测；效果舱未做 |
 
