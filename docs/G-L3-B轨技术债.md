@@ -33,11 +33,11 @@
 | TD-05 | **P2** | 发布模式大小写 `AUTO` vs `auto` | B5 | 契约终态时 | `open` |
 | TD-06 | **P2** | 草稿状态多了 `approved` | B4/B8 | 契约终态时 | `open` |
 | TD-07 | **P2** | 禁词兜底硬编码灰区 | B4 | A0 真接时删 | `done` |
-| TD-08 | **P2** | B8 监测/效果舱仍为前端假数据 | B8 | 跟 B6/B7 | `doing`（监测已接；效果舱待 B7） |
+| TD-08 | **P2** | B8 监测/效果舱仍为前端假数据 | B8 | 跟 B6/B7 | `done` |
 | TD-09 | **P1** | B0–B1 手测清单未落盘 | B0/B1 | 补记录即可 | `open` |
 | TD-10 | **P0** | `monitor_results` 无 `baseline`，无法区分 T0/T1 | B6 前置 | B6 开工时 | `done` |
 | TD-11 | **P2** | 方案包页缺 `TODO(WAIT_FOR: A7+A8)`；scenario 勾选未硬限 5 | B1/B8 | 真接前 | `done` |
-| TD-12 | **P2** | monitor/outcomes 假数据无 MOCK 黄条；`ops.ts` 已有客户端未接线 | B8 | 跟 B6/B7 | `doing`（monitor 已接线；outcomes 待 B7） |
+| TD-12 | **P2** | monitor/outcomes 假数据无 MOCK 黄条；`ops.ts` 已有客户端未接线 | B8 | 跟 B6/B7 | `done` |
 
 ---
 
