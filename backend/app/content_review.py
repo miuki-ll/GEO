@@ -1,6 +1,6 @@
 """B4 内容检测链（固定链 · 无 ReAct）：5 项机审。
 
-禁词优先 IndustryPack / beauty_local 模板；勿在 content_service 维护完整禁词副本。
+禁词业务路径只走 IndustryPack.get_industry_pack(...).forbidden_words()（TD-07）。
 """
 from __future__ import annotations
 
@@ -9,33 +9,13 @@ from typing import Any, Dict, List, Optional, Sequence
 
 TARGET_TYPE = "strategy_pack+content"
 
+# 仅 APP_ENV=test 可见的兜底；生产/开发业务路径不得依赖此列表
+_TEST_FALLBACK_WORDS = ["根治", "永不复发", "100%有效", "国家级"]
+
 
 def resolve_forbidden_words(industry_pack_code: str = "beauty_local") -> tuple[List[str], bool]:
-    """返回 (words, from_pack)。from_pack=False 表示 MOCK 兜底。"""
-    import importlib.util
-    import os
-
+    """返回 (words, from_pack)。from_pack=False 仅允许测试兜底。"""
     code = (industry_pack_code or "beauty_local").strip() or "beauty_local"
-    # 直接按文件加载 templates，绕过 pack/seed 对 sqlalchemy 的硬依赖
-    if code == "beauty_local":
-        try:
-            path = os.path.join(
-                os.path.dirname(__file__),
-                "agents",
-                "industry",
-                "packs",
-                "beauty_local",
-                "templates.py",
-            )
-            spec = importlib.util.spec_from_file_location("_beauty_local_templates", path)
-            if spec and spec.loader:
-                mod = importlib.util.module_from_spec(spec)
-                spec.loader.exec_module(mod)
-                words = list(getattr(mod, "BEAUTY_LOCAL_FORBIDDEN_WORDS", []) or [])
-                if words:
-                    return words, True
-        except Exception:
-            pass
     try:
         from app.agents.industry.registry import get_industry_pack
 
@@ -46,7 +26,19 @@ def resolve_forbidden_words(industry_pack_code: str = "beauty_local") -> tuple[L
                 return words, True
     except Exception:
         pass
-    return ["根治", "永不复发", "100%有效", "国家级"], False
+
+    # TD-07：A0 已交付后，业务路径不再用硬编码副本；仅 pytest/test 环境兜底
+    try:
+        from app.core.config import settings
+
+        env = (getattr(settings, "APP_ENV", None) or "").strip().lower()
+    except Exception:
+        env = ""
+    if env in ("test", "testing"):
+        return list(_TEST_FALLBACK_WORDS), False
+    raise ValueError(
+        f"IndustryPack '{code}' forbidden_words 不可用；请确认 A0 registry 已注册该包"
+    )
 
 
 def check_fact_verify(

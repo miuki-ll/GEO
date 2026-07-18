@@ -132,12 +132,16 @@ export interface MonitorResultItem {
   id: number
   pool_type: 'core' | 'probe'
   engine: string
+  engine_code?: string
   query: string
+  prompt?: string
   scenario_id?: number
   mentioned: boolean
+  brand_mentioned?: boolean
   mention_snippet?: string
   trust_score?: number
   position_rank?: number
+  baseline?: boolean
   run_at?: string
   batch_no?: string
 }
