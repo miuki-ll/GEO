@@ -108,20 +108,27 @@
 ---
 
 ### A4 · Faiss per-tenant 向量库 ⚠️ 需新建
+> **方案**：磁盘持久化（`faiss.write_index` / `faiss.read_index`）+ 方案 C（dirty 标记 + Celery 异步逐条同步）
+> **模型**：bge-small-zh-v1.5（384 维），路径放 `.env`
 > **现状态**：`FaissIndex` model 在 `models/ops.py`，`rag/__init__.py` 空壳，embedding 在 `core/embedding.py`
 > **涉及文件**：
 
 | 文件 | 作用 | 状态 |
 |------|------|:--:|
 | `backend/app/models/ops.py` | FaissIndex 表定义 | 🟢 已有 |
-| `backend/app/core/embedding.py` | get_embedding_function() — bge-small-zh-v1.5 | 🟢 已有 |
-| `backend/app/rag/__init__.py` | 空壳 | 🔴 待写 |
-| `backend/app/rag/faiss_service.py` | Faiss per-tenant add/search/delete | 🔴 待建 |
+| `backend/app/core/embedding.py` | get_embedding_function() — 改为从 settings 读路径 | 🛠️ 待改 |
+| `backend/app/core/config.py` | 新增 EMBEDDING_MODEL_PATH | 🛠️ 待改 |
+| `backend/.env` | 新增 EMBEDDING_MODEL_PATH | 🛠️ 待改 |
+| `backend/app/rag/__init__.py` | 空壳 → 导出 FaissService | 🛠️ 待改 |
+| `backend/app/rag/faiss_service.py` | Faiss per-tenant add/search/delete/rebuild + 磁盘持久化 | 🔴 待建 |
+| `backend/app/tasks/faiss_tasks.py` | Celery 异步任务（sync_item / rebuild_index） | 🔴 待建 |
+| `backend/app/tasks/__init__.py` | 注册 faiss_tasks | 🛠️ 待改 |
+| `backend/app/service/kb_service.py` | _create/_update/_delete 接 Celery 触发 | 🛠️ 待改 |
 
-- [ ] **[A4-1](./steps/A4-1.md)** — ⚠️ 新建 `faiss_service.py`：FaissService 核心类（add/search/delete + 延迟加载 embedding）
-- [ ] **[A4-2](./steps/A4-2.md)** — 补全：租户隔离验证 + `faiss_indexes` 元数据写入 + rebuild
-- [ ] **[A4-3](./steps/A4-3.md)** — ⚠️ 新建 `test_a4_faiss.py`，T-A4-01~03 全 PASS
-- [ ] **🔍 A4 验收（审查者）** — 读执行记录 + git diff + 跑测试 → 更新进度表 + NOTIFY
+- [x] **[A4-1](./steps/A4-1.md)** — 🆕 新建 `faiss_service.py` + `faiss_tasks.py` + config/.env/embedding 适配
+- [x] **[A4-2](./steps/A4-2.md)** — 🛠️ 接线：kb_service 增删改 → Celery 任务 + `rag/__init__.py` 导出
+- [x] **[A4-3](./steps/A4-3.md)** — 🧪 新建 `test_a4_faiss.py`，3 条用例（mock embedding）
+- [x] **🔍 A4 验收（审查者）** — ✅ 审查通过（2026-07-19）：一次驳回 A4-3（ImportError），修复后二次验收 29 passed。
 
 ---
 
@@ -142,7 +149,8 @@
 ---
 
 ### A5 · 开店向导 API ⚠️ 骨架已有，逻辑需实现
-> **现状态**：`/onboarding/run` 路由存在，但 `nodes.py` 的 `run_onboarding_nodes` 是空壳（只打 log + 设进度，不调 LLM）
+> **方案**：走 graph 系统（nodes.py）+ /run 一次性接收全部表单 + 4 节点顺序 LLM + 并行 search 兜底
+> **现状态**：`/onboarding/run` 路由存在，`nodes.py` 空壳，`diagnosis_service.py` 硬编码
 > **涉及文件**：
 
 | 文件 | 作用 | 状态 |
@@ -162,27 +170,10 @@
 | `backend/app/schemas/agent.py` | Agent 相关 schema | 🟢 已有 |
 | `backend/app/service/kb_freshness_service.py` | thin_kb_check | 🟢 已有 |
 
-- [ ] **A5-1** — `backend/app/agents/graphs/onboarding/nodes.py` — 重写 `run_onboarding_nodes`，4 节点各调 A3 gateway：
-  - `DIAGNOSE` → 品类+商圈+店名 → `gateway.chat()` → 生成探针问句（20-30条）
-  - `PAIN` → raw_inputs + 服务项目 → `gateway.chat()` → 分析痛点
-  - `PERSONA` → 客群 + 痛点 → `gateway.chat()` → 生成 buyer_personas
-  - `COMPETITOR` → 竞品名 → `gateway.chat()` → 竞品差异简报
-- [ ] **A5-2** — `backend/app/agents/graphs/onboarding/state.py` — 核实 AgentGraphState 含 enterprise_id / step / progress_pct / progress_message / output_data
-- [ ] **A5-3** — `backend/app/api/v1/user/onboarding.py` — 核实 `/run` 路由：解析 body → 创建 AgentTask → background task 调 onboarding_graph
-- [ ] **A5-4** — `backend/app/service/agent_task_service.py` — 入驻副作用写入：
-  - `Brand` → `brands` 表
-  - `Store` → `stores` 表
-  - `Service` → `services` 表
-  - `TargetEngine` → `target_engines` 表（关联 enterprise）
-  - IndustryPack 激活 → `enterprises.settings` JSON
-- [ ] **A5-5** — `backend/app/service/agent_task_service.py` — KB 自动建库：
-  - 从 `raw_inputs` + services 提取初始 KBFact / KBSignal
-  - 调用 `thin_kb_check()` 验证门槛
-- [ ] **A5-6** — `backend/app/service/agent_task_service.py` — 托管页骨架 + llms.txt 生成：
-  - 占位托管页 URL（A5 约定格式，B5 发布时替换）
-  - llms.txt：品牌/门店/服务结构化摘要
-- [ ] **A5-7** — `backend/tests/a_track/test_a5_onboarding.py` — ⚠️ 新建，验证 run→task_id，Brand/Store/Service/KBFact/KBSignal 落库
-- [ ] **A5-8** — 验收：进度表 `A5 done`
+- [ ] **[A5-1](./steps/A5-1.md)** — 🛠️ 重写 `nodes.py`：4 个 LLM 节点（DIAGNOSE→PAIN→PERSONA→COMPETITOR）+ 并行 search 兜底
+- [ ] **[A5-2](./steps/A5-2.md)** — 🛠️ `onboarding.py` 改造：新 `OnboardingRunRequest` schema + 切 `runner.run_graph()` + Brand/Store/Service 副作用写入
+- [ ] **[A5-3](./steps/A5-3.md)** — 🛠️ KB 自动建库：seed_facts → KBFact/KBSignal + thin_kb_check + llms.txt 骨架
+- [ ] **[A5-4](./steps/A5-4.md)** — 🧪 新建 `test_a5_onboarding.py`，6 条用例（mock LLM 全流程）
 
 ### A6 · onboarding SSE 进度
 > **现状态**：`nodes.py` 空壳已有 progress_pct 赋值，但 SSE 端点需实现

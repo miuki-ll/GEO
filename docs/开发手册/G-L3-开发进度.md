@@ -37,13 +37,13 @@
 
 | 项 | 值 |
 |----|-----|
-| **更新日期** | 2026-07-17 |
+| **更新日期** | 2026-07-19 |
 | **当前周** | W1 |
-| **A 当前任务** | A2（KB CRUD）准备中 |
+| **A 当前任务** | A4（Faiss per-tenant）step 已写，待 Cursor 执行 |
 | **B 当前任务** | B0（可 MOCK 先行）· **G1 可验** |
-| **全局阻塞** | **B1 真接 WAIT_FOR A7+A8**；**G4 WAIT_FOR A7**；B5 AUTO WAIT_FOR A5；**A0 已 done → B4 可接禁词** |
+| **全局阻塞** | **B1 真接 WAIT_FOR A7+A8**；**G4 WAIT_FOR A7**；B5 AUTO WAIT_FOR A5 |
 | **下一联调 GATE** | G1（信封+JWT）✅ 可验；G2/G4 暂不可绿 |
-| **备注** | A0+A1 已通知 B；详见 B 手册 §3.1–§3.3 · **§11 测试**；SEMI/B2 可先做 |
+| **备注** | A0/A1/A2/A3 done；A4 step 已写；详见 B 手册 §3.1–§3.3 · **§11 测试** |
 
 ---
 
@@ -55,8 +55,8 @@
 | A1 | 注册/登录/JWT/RBAC/租户隔离 | `done` | 2026-07-17 | 2026-07-17 | | tests: A1 pass · 已通知 B → G1 |
 | A2 | KB CRUD（Fact/FAQ/Signal） | `done` | 2026-07-19 | 2026-07-19 | | tests: A2 pass · 已通知 B → fact_refs |
 | A3 | LLM Gateway × 4 Adapter | `done` | 2026-07-19 | 2026-07-19 | | tests: A3 pass · 已通知 B → B1/B3 |
-| A4 | Faiss per-tenant | `todo` | | | | |
-| A5 | 开店向导：建库 + Schema + llms.txt | `todo` | | | | |
+| A4 | Faiss per-tenant | `done` | 2026-07-19 | 2026-07-19 | | tests: A4 pass · FaissService add/search/delete/rebuild |
+| A5 | 开店向导：建库 + Schema + llms.txt | `doing` | 2026-07-19 | | | step 文件已写，待 Cursor 执行 |
 | A6 | onboarding SSE 进度 | `todo` | | | | |
 | A7 | 诊断 5 项 + 写 T0 | `todo` | | | | NOTIFY B → B1/B6 |
 | A8 | 四源汇聚词库 + CRUD | `todo` | | | | NOTIFY B → B1 |
@@ -173,7 +173,7 @@
 
 | 轨 | todo | doing | blocked | done | 合计 |
 |----|:----:|:-----:|:-------:|:----:|:----:|
-| A（A0–A9） | 5 | 0 | 0 | 4 | 10 |
+| A（A0–A9） | 3 | 0 | 0 | 5 | 10 |
 | B（B0–B8） | 9 | 0 | 0 | 0 | 9 |
 | GATE（G1–G5） | 5 | 0 | 0 | 0 | 5 |
 | AC（01–15） | 15 | 0 | 0 | 0 | 15 |
