@@ -217,8 +217,8 @@
 
 - [x] **[A7-1](./steps/A7-1.md)** — 🆕 `search_results` 独立表 + schema（SearchCitation/SearchResult*/SourceMap/DiagnosisFullResponse）+ migration
 - [x] **[A7-2](./steps/A7-2.md)** — 🛠️ 重写 `diagnosis_service.py`：generate_probes → batch_search(Celery+并发5) → analyze → source_map → write_t0
-- [ ] **[A7-3](./steps/A7-3.md)** — 🛠️ `diagnosis.py` 路由改造：POST /all 调 Celery + GET /{batch_no} 五区 JSON + SSE events
-- [ ] **[A7-4](./steps/A7-4.md)** — 🧪 新建 `test_a7_diagnosis.py`，5 条用例（mock LLM + search）
+- [x] **[A7-3](./steps/A7-3.md)** — 🛠️ `diagnosis.py` 路由改造：POST /all 调 Celery + GET /{batch_no} 五区 JSON + SSE events
+- [x] **[A7-4](./steps/A7-4.md)** — 🧪 新建 `test_a7_diagnosis.py`，5 条用例（mock LLM + search）
 - [ ] **🔍 A7 验收（审查者）** — 读执行记录 + git diff + 跑测试 → 更新进度表 + NOTIFY B（关键）
 
 ### ✅ A7 已确定
@@ -274,48 +274,36 @@
 ---
 
 ### A9 · 前端：登录/入驻/KB/设置
+> **方案**：只接后端 API（不改 UI 布局）+ 分步收集表单数据 + SSE 进度 + 路由守卫按入驻状态跳转
 > **现状态**：页面目录全有，API 封装全有，但接线程度不一（Login/Register 功能较完整，onboarding/settings 待完善）
 > **涉及文件**：
 
 | 文件 | 作用 | 状态 |
 |------|------|:--:|
-| `frontend/src/views/Login.vue` | 登录页 | 🟡 待核实 |
-| `frontend/src/views/Register.vue` | 注册页 | 🟡 待核实 |
-| `frontend/src/views/onboarding/Index.vue` | 入驻引导页 | 🟡 骨架 |
-| `frontend/src/views/knowledge-base/Index.vue` | KB 管理页 | 🟡 骨架 |
-| `frontend/src/views/settings/Index.vue` | 设置页 | 🟡 骨架 |
-| `frontend/src/api/auth.ts` | auth API 封装 | 🟢 已有 |
-| `frontend/src/api/enterprise.ts` | enterprise API 封装 | 🟢 已有 |
-| `frontend/src/api/kb.ts` | KB API 封装 | 🟢 已有 |
-| `frontend/src/api/onboarding.ts` | onboarding API 封装 | 🟢 已有 |
-| `frontend/src/stores/user.ts` | 用户状态（JWT 存储） | 🟢 已有 |
-| `frontend/src/stores/onboarding.ts` | 入驻流程状态 | 🟢 已有 |
-| `frontend/src/router/index.ts` | 路由配置 | 🟢 已有 |
-| `frontend/src/utils/request.ts` | axios 封装 + JWT 注入 | 🟢 已有 |
-| `frontend/src/layouts/DefaultLayout.vue` | 默认布局 | 🟢 已有 |
-| `frontend/src/components/ProgressChain.vue` | 进度链组件 | 🟢 已有 |
+| `frontend/src/views/onboarding/Index.vue` | 入驻引导页 — 补齐表单字段 + SSE 进度 | 🛠️ 待改 |
+| `frontend/src/views/knowledge-base/Index.vue` | KB 管理页 — 接真实 CRUD + 词库面板 | 🛠️ 待改 |
+| `frontend/src/views/settings/Index.vue` | 设置页 — 企业信息 + 团队成员接真实 API | 🛠️ 待改 |
+| `frontend/src/api/onboarding.ts` | 更新 OnboardingRunRequest 类型 + SSE 函数 | 🛠️ 待改 |
+| `frontend/src/api/kb.ts` | 新增 keyword API 函数 | 🛠️ 待改 |
+| `frontend/src/stores/onboarding.ts` | 扩展 persist 字段 | 🛠️ 待改 |
+| `frontend/src/router/index.ts` | 路由守卫加入驻状态判断 | 🛠️ 待改 |
+| `frontend/src/views/Login.vue` | 登录页 | 🟢 已可用 |
+| `frontend/src/views/Register.vue` | 注册页 | 🟢 已可用 |
 
-- [ ] **A9-1** — `frontend/src/views/Login.vue` — 核实：邮箱+密码 → `api/auth.ts` login → 存 JWT 到 store → 跳转 `/onboarding` 或 `/strategy-pack`
-- [ ] **A9-2** — `frontend/src/views/Register.vue` — 核实：企业名+邮箱+密码 → `api/auth.ts` register → 自动登录 → 跳转 `/onboarding`
-- [ ] **A9-3** — `frontend/src/views/onboarding/Index.vue` — 完善 6 步表单：
-  - Step 1 选行业(beauty_local) → Step 2 选主攻 AI(doubao/deepseek 多选) → Step 3 填品牌 → Step 4 填门店(含坐标) → Step 5 填服务 → Step 6 填客群+竞品+raw_inputs
-  - 提交 → `api/onboarding.ts` run → SSE 进度条 → 100% 跳转 `/strategy-pack`
-- [ ] **A9-4** — `frontend/src/views/knowledge-base/Index.vue` — 完善：
-  - Fact / FAQ / Signal 三 tab，各含列表+新增/编辑弹窗
-  - A8 词库四层面板（折叠/筛选/增删改）
-- [ ] **A9-5** — `frontend/src/views/settings/Index.vue` — 完善：
-  - 企业信息编辑 → `api/enterprise.ts` updateProfile
-  - 主攻 AI 修改 → 改 `target_engines`（通过 settings JSON 或独立字段）
-  - 成员管理 → list + invite + 改角色
-- [ ] **A9-6** — `frontend/src/api/` — 核实/补全 API 封装：
-  - `auth.ts` — register / login / getCurrentUser
-  - `enterprise.ts` — getProfile / updateProfile / listMembers / inviteMember / updateMember
-  - `kb.ts` — facts CRUD / faqs CRUD / signals CRUD + keywords CRUD（A8 新增）
-  - `onboarding.ts` — run / status SSE
-- [ ] **A9-7** — `frontend/src/router/index.ts` — 核实路由守卫：未登录→/login，已登录但无企业→/onboarding，已完成入驻→/strategy-pack
-- [ ] **A9-8** — 手工烟雾测试：注册→登录→入驻→SSE→跳转 /strategy-pack 全链跑通
-- [ ] **A9-9** — ⚠️ AC-13 联动：改 `target_engines` → B6 监测跟随之（需等 B6，**WAIT_FOR B6**）
-- [ ] **A9-10** — 验收：进度表 `A9 done`
+- [ ] **[A9-1](./steps/A9-1.md)** — 🛠️ 入驻向导：更新 API 类型 + 补齐表单字段 + SSE 进度 + 分步收集数据
+- [ ] **[A9-2](./steps/A9-2.md)** — 🛠️ 知识库：Fact/FAQ 接真实 CRUD + 新增词库四层面板
+- [ ] **[A9-3](./steps/A9-3.md)** — 🛠️ 设置页：企业信息 + 团队成员接真实 API + 路由守卫按入驻状态跳转
+- [ ] **[A9-4](./steps/A9-4.md)** — 🔍 前端全链路验证：vue-tsc 类型检查 + 手工烟雾测试（10 步）
+- [ ] **🔍 A9 验收（审查者）** — 读执行记录 + git diff + 手工验证关键路径
+
+### ✅ A9 已确定
+
+| # | 问题 | 决策 |
+|---|------|------|
+| 1 | 入驻表单策略 | **分步收集**，最后一次性 POST /run |
+| 2 | 入驻进度 | **切换 SSE**（A6 GET /events/{task_id}） |
+| 3 | 登录后跳转 | **按入驻状态**：未入驻 → /onboarding，已入驻 → /outcomes |
+| 4 | A9 范围 | **只接后端 API**，不改 UI 布局 |
 
 ---
 
