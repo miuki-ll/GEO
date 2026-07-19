@@ -47,7 +47,7 @@
 - [x] **[A1-2](./steps/A1-2.md)** — 🛠️ Login.vue / Register.vue 切真实 API
 - [x] **[A1-3](./steps/A1-3.md)** — 🔍 全链路验证：register → login → JWT → 租户隔离 → target_engines
 - [x] **[A1-4](./steps/A1-4.md)** — 🆕 新建 `test_a1_auth.py`，6 条用例全 PASS
-- [ ] **🔍 A1 验收（审查者）** — 读执行记录 + git diff + 跑测试 → 更新进度表 + NOTIFY
+- [x] **🔍 A1 验收（审查者）** — ✅ 审查通过（2026-07-17）：6 tests pass + git diff 文件在清单内 + 无越权改动。已 NOTIFY B → G1
 
 ---
 
@@ -63,31 +63,47 @@
 | `backend/app/schemas/kb.py` | Request/Response schema |
 | `backend/app/service/kb_freshness_service.py` | kb_freshness + thin_kb_check |
 
-- [ ] **[A2-1](./steps/A2-1.md)** — 核实 kb_facts 5 端点 CRUD + 分页 + 租户注入
-- [ ] **[A2-2](./steps/A2-2.md)** — 核实 kb_faqs / kb_signals / kb_externals 各 5 端点
-- [ ] **[A2-3](./steps/A2-3.md)** — 核实 KB Summary 聚合 + kb_freshness + thin_kb_check
-- [ ] **[A2-4](./steps/A2-4.md)** — ⚠️ 新建 `test_a2_kb.py`，T-A2-01~06 全 PASS
+- [x] **[A2-1](./steps/A2-1.md)** — 🔍 核实 kb_facts 7 端点 — CRUD + 分页 + 租户注入 + 角色控制
+- [x] **[A2-2](./steps/A2-2.md)** — 🔍 核实 kb_faqs / kb_signals / kb_externals — 复用 _BaseKBService
+- [x] **[A2-3](./steps/A2-3.md)** — 🔍 核实 KB Summary 聚合 + kb_freshness + thin_kb_check
+- [ ] **[A2-4](./steps/A2-4.md)** — 🧪 新建 `test_a2_kb.py`，8 条用例全 PASS（6 API + 2 Service）
 - [ ] **🔍 A2 验收（审查者）** — 读执行记录 + git diff + 跑测试 → 更新进度表 + NOTIFY
 
 ---
 
 ### A3 · LLM Gateway × 4 EngineAdapter
-> **现状态**：代码已有，gateway.py 173 行 + adapters.py 完整
+> **现状态**：代码已有，gateway.py 173 行 + adapters.py 完整。联网搜索已验证通过。
+> **已验证**：
+> - ✅ Chat API：`doubao-seed-2-1-pro-260628` 可用（ep-20260717201633-hknqf 也行）
+> - ✅ Responses API + web_search：**直接用模型名** `doubao-seed-2-1-pro-260628`，不能用 ep-xxx
+> - ✅ citations 解析：`output[].content[].annotations[type=url_citation]`，含 title/url/summary(1200+字)/site_name/publish_time
+> - ✅ summary 足够做痛点/场景/竞品分析，不需要额外爬全文
+> - ✅ timeout 需 ≥180s，API Key 已写入 `.env`
+> - 📄 接入文档：[豆包.md](../../../豆包.md) · 测试脚本：[test_doubao.py](../../../backend/test_doubao.py)
 > **涉及文件**：
 
-| 文件 | 作用 |
-|------|------|
-| `backend/app/core/llm/gateway.py` | LLMGateway — chat()/embed() 统一入口 |
-| `backend/app/core/llm/adapters.py` | DoubaoAdapter / DeepseekAdapter / KimiAdapter / WenxinAdapter |
-| `backend/app/core/llm/base.py` | BaseEngineAdapter 抽象类 |
-| `backend/app/core/llm/schemas.py` | LLMRequest / LLMResponse / EmbeddingRequest / EmbeddingResponse |
-| `backend/app/core/config.py` | API keys / base URLs |
+| 文件 | 作用 | 状态 |
+|------|------|:--:|
+| `backend/app/core/llm/gateway.py` | LLMGateway — chat()/embed()/search() 统一入口 | 🛠️ 需加 search() |
+| `backend/app/core/llm/adapters.py` | DoubaoAdapter / DeepseekAdapter / KimiAdapter / WenxinAdapter | 🛠️ DoubaoAdapter 需加 search() |
+| `backend/app/core/llm/base.py` | BaseEngineAdapter 抽象类 | 🛠️ 需加 search() 可选方法 |
+| `backend/app/core/llm/schemas.py` | LLMRequest / LLMResponse / SearchRequest / SearchResponse | 🛠️ 需加 SearchRequest/SearchResponse/SearchCitation |
+| `backend/app/core/config.py` | API keys / base URLs | 🟢 已有 DOUBAO_API_KEY |
 
-- [ ] **[A3-1](./steps/A3-1.md)** — 核实 4 个 Adapter 注册 + ENGINE_CODE + default_model
-- [ ] **[A3-2](./steps/A3-2.md)** — 核实 gateway.chat() fallback 逻辑 + simple_prompt()
-- [ ] **[A3-3](./steps/A3-3.md)** — 核实 gateway.embed() + 错误处理 + 重试
-- [ ] **[A3-4](./steps/A3-4.md)** — ⚠️ 新建 `test_a3_gateway.py`，T-A3-01~05 全 PASS
-- [ ] **🔍 A3 验收（审查者）** — 读执行记录 + git diff + 跑测试 → 更新进度表 + NOTIFY
+- [x] **[A3-1](./steps/A3-1.md)** — 🛠️ schemas 加 SearchCitation/SearchRequest/SearchResponse + base 加 search() 可选方法
+- [x] **[A3-2](./steps/A3-2.md)** — 🛠️ DoubaoAdapter.search() + gateway.search() + `__init__.py` 导出
+- [x] **[A3-3](./steps/A3-3.md)** — 🔍 核实 4 Adapter 注册/降级/embed/重试（只读验证）
+- [x] **[A3-4](./steps/A3-4.md)** — 🧪 新建 `test_a3_gateway.py`，T-A3-01~06 全 PASS（含 search mock）
+- [x] **🔍 A3 验收（审查者）** — ✅ 审查通过（2026-07-19）：18 tests pass + git diff 文件在清单内 + 无越权改动。已 NOTIFY B
+
+### ✅ 已确定事项（2026-07-19）
+
+| # | 问题 | 决策 |
+|---|------|------|
+| 1 | 并发方案（A7 25条探针慢） | **B+C 并行**：Celery 任务队列 + BackgroundTasks/SSE 进度推送 |
+| 2 | 持久化方案（citations 存哪里） | **方案 B**：新建 `search_results` 独立表 |
+| 3 | 非豆包引擎的 search() | gateway.search() 自动降级到 chat 模拟，标记 `simulated=true` |
+| 4 | DeepSeek/Kimi/文心 的 API Key | 待用户提供（仅影响降级链，不阻塞 A3-A7） |
 
 ---
 
@@ -195,29 +211,41 @@
 
 ### A7 · 诊断 5 项 + 写 T0 ⚠️ 部分已有，需补全
 > **现状态**：`diagnosis.py` 有 pain/persona/competitor 三个 GET + `/all` POST，但 diagnosis_service 用随机默认数据，非 LLM 驱动
+> **联网搜索方案**（2026-07-18 验证通过）：
+> - Responses API + `web_search` tool → 每条探针约 2-3min，返回 9+ citations（每条 summary 1200+字）
+> - citations → `source_diagnoses.payload` 持久化 → 喂 LLM 做痛点/场景/竞品分析
+> - **详细文档**：[豆包.md](../../../豆包.md)
 > **涉及文件**：
 
 | 文件 | 作用 | 状态 |
 |------|------|:--:|
 | `backend/app/api/v1/user/diagnosis.py` | 诊断路由（pain/persona/competitor/all） | 🟡 部分 |
-| `backend/app/service/diagnosis_service.py` | diagnose_pain/persona/competitor/run_all | 🟡 需重写 |
+| `backend/app/service/diagnosis_service.py` | diagnose_probe/batch_search/build_source_map/analyze_competitors/write_t0 | 🟡 需重写 |
 | `backend/app/models/strategy.py` | SourceDiagnosis / Keyword model | 🟢 已有 |
 | `backend/app/models/monitor.py` | MonitorResult（T0 写入目标） | 🟢 已有 |
-| `backend/app/schemas/diagnosis.py` | 诊断 response schema | 🟡 待确认 |
+| `backend/app/schemas/diagnosis.py` | 诊断 response schema | 🟡 待补 SourceMap/Citation/SearchResult |
 | `backend/app/schemas/business.py` | PersonaData / CompetitorItem / PainPoint | 🟡 待确认 |
-| `backend/app/core/llm/gateway.py` | A3 gateway.chat() | 🟢 已有 |
+| `backend/app/core/llm/gateway.py` | A3 gateway.chat() + gateway.search()（A3-3 新增） | 🟡 依赖 A3-3 |
 
-- [ ] **A7-1** — `backend/app/service/diagnosis_service.py` — 重写 `diagnose_probe()`：品类+商圈+店名→`gateway.chat()`→20-30条自然问句（非模板）
-- [ ] **A7-2** — `backend/app/service/diagnosis_service.py` — 新增 `batch_test_engines()`：在 `target_engines` 上跑全量探针问句，记录每条 brand_mentioned/rank/hallucination/citations
-- [ ] **A7-3** — `backend/app/service/diagnosis_service.py` — 新增 `build_source_map()`：从 citations 聚合 domain→count→weight→排行榜+gaps，写入 `source_diagnoses` 表
-- [ ] **A7-4** — `backend/app/service/diagnosis_service.py` — 新增 `analyze_competitors()`：LLM→track(blank/defense/breakthrough)+竞品差异简报
-- [ ] **A7-5** — `backend/app/api/v1/user/diagnosis.py` — 新增 `GET /diagnosis/{id}` 返回完整五区 JSON（probe_prompts/brand_mention_rate/hallucination_rate/competitor_occupancy/source_map/track/competitor_analysis）
-- [ ] **A7-6** — `backend/app/service/diagnosis_service.py` — 新增 `write_t0_baseline()`：探针问句全量写入 `monitor_results`，`baseline=true`（与 B 侧 T1 同构）
-- [ ] **A7-7** — `backend/app/api/v1/user/diagnosis.py` — 既有 `/pain` `/persona` `/competitor` 端点对齐新 service 输出
-- [ ] **A7-8** — `backend/app/schemas/diagnosis.py` — 如需，新增 SourceMap / CompetitorAnalysis / DiagnosisFullResponse schema
-- [ ] **A7-9** — `backend/tests/a_track/test_a7_diagnosis.py` — ⚠️ 新建，验证五区字段齐全 + T0 baseline=true + 不同 engine 隔离
+- [ ] **A7-1** — 重写 `diagnose_probe()`：品类+商圈+店名→`gateway.chat()`→20-30条自然问句
+- [ ] **A7-2** — 新增 `batch_search_engines()`：逐条探针调 `gateway.search()`（豆包联网搜索），记录 answer+citations，并发控制（QPS≤5）
+- [ ] **A7-3** — 新增 `analyze_from_citations()`：从 citations[].summary + answer 调 `gateway.chat()`→brand_mentioned/rank/competitor_occupancy/pain_points/track
+- [ ] **A7-4** — 新增 `build_source_map()`：从 citations 聚合 domain→count→weight→rankings+gaps
+- [ ] **A7-5** — 新增 `write_t0_baseline()`：探针+answer+citations 全量写入 `monitor_results`，`metadata_json.baseline=true`
+- [ ] **A7-6** — `GET /diagnosis/{id}` 返回完整五区 JSON（见下方设计）
+- [ ] **A7-7** — `POST /diagnosis/all` 改为异步流水线：generate_probes→batch_search→analyze→build_map→write_t0，SSE 推进度
+- [ ] **A7-8** — `backend/app/schemas/diagnosis.py` — 新增 Citation / SearchResult / SourceMap / DiagnosisFullResponse
+- [ ] **A7-9** — `backend/tests/a_track/test_a7_diagnosis.py` — ⚠️ 新建
 - [ ] **A7-10** — 验收：进度表 `A7 done`，发 **NOTIFY B（关键）**
 - [ ] **A7-11** — `backend/tests/fixtures/handoff_a_to_b/diagnosis.json` — 按真实输出形状刷新
+
+### 🟡 A7 待确定
+
+| # | 问题 | 状态 |
+|---|------|:--:|
+| 1 | 25条探针×180s=75min 太慢，异步+并发怎么设计？ | 待讨论 |
+| 2 | 非豆包引擎（DeepSeek/Kimi）没有联网搜索，诊断跳过还是模拟？ | 待定 |
+| 3 | citations 的 summary 持久化到哪？`source_diagnoses.payload` 还是独立表？ | 倾向于 payload JSON |
 
 ---
 

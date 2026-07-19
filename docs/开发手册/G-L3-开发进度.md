@@ -54,7 +54,7 @@
 | A0 | IndustryPack 基类 + beauty_local 规则簿 | `done` | 2026-07-17 | 2026-07-17 | | tests: A0 pass · 已通知 B → B4/B1 |
 | A1 | 注册/登录/JWT/RBAC/租户隔离 | `done` | 2026-07-17 | 2026-07-17 | | tests: A1 pass · 已通知 B → G1 |
 | A2 | KB CRUD（Fact/FAQ/Signal） | `todo` | | | | NOTIFY B → fact_refs |
-| A3 | LLM Gateway × 4 Adapter | `todo` | | | | NOTIFY B → chat() |
+| A3 | LLM Gateway × 4 Adapter | `done` | 2026-07-19 | 2026-07-19 | | tests: A3 pass · 已通知 B → B1/B3 |
 | A4 | Faiss per-tenant | `todo` | | | | |
 | A5 | 开店向导：建库 + Schema + llms.txt | `todo` | | | | |
 | A6 | onboarding SSE 进度 | `todo` | | | | |
@@ -173,7 +173,7 @@
 
 | 轨 | todo | doing | blocked | done | 合计 |
 |----|:----:|:-----:|:-------:|:----:|:----:|
-| A（A0–A9） | 7 | 0 | 0 | 2 | 10 |
+| A（A0–A9） | 6 | 0 | 0 | 3 | 10 |
 | B（B0–B8） | 9 | 0 | 0 | 0 | 9 |
 | GATE（G1–G5） | 5 | 0 | 0 | 0 | 5 |
 | AC（01–15） | 15 | 0 | 0 | 0 | 15 |
