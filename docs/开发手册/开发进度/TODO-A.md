@@ -66,8 +66,8 @@
 - [x] **[A2-1](./steps/A2-1.md)** — 🔍 核实 kb_facts 7 端点 — CRUD + 分页 + 租户注入 + 角色控制
 - [x] **[A2-2](./steps/A2-2.md)** — 🔍 核实 kb_faqs / kb_signals / kb_externals — 复用 _BaseKBService
 - [x] **[A2-3](./steps/A2-3.md)** — 🔍 核实 KB Summary 聚合 + kb_freshness + thin_kb_check
-- [ ] **[A2-4](./steps/A2-4.md)** — 🧪 新建 `test_a2_kb.py`，8 条用例全 PASS（6 API + 2 Service）
-- [ ] **🔍 A2 验收（审查者）** — 读执行记录 + git diff + 跑测试 → 更新进度表 + NOTIFY
+- [x] **[A2-4](./steps/A2-4.md)** — 🧪 新建 `test_a2_kb.py`，8 条用例全 PASS（6 API + 2 Service）
+- [x] **🔍 A2 验收（审查者）** — ✅ 审查通过（2026-07-19）：26 tests pass + 仅新建 test_a2_kb.py + 无越权改动。已 NOTIFY B
 
 ---
 
