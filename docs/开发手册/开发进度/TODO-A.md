@@ -176,23 +176,20 @@
 - [x] **[A5-4](./steps/A5-4.md)** — 🧪 新建 `test_a5_onboarding.py`，6 条用例（mock LLM 全流程）
 
 ### A6 · onboarding SSE 进度
-> **现状态**：`nodes.py` 空壳已有 progress_pct 赋值，但 SSE 端点需实现
+> **方案**：Redis pub/sub SSE 实时推送 — `core/sse.py` 封装 + nodes/runner 发布事件 + `/events/{task_id}` 端点
+> **现状态**：`GET /status/{task_id}` 已是轮询接口，待升级为 SSE
 > **涉及文件**：
 
 | 文件 | 作用 | 状态 |
 |------|------|:--:|
-| `backend/app/api/v1/user/onboarding.py` | SSE 端点可加在此文件 | 🟡 待加 |
-| `backend/app/service/agent_task_service.py` | update_progress / complete_task | 🟢 已有 |
-| `backend/app/agents/graphs/onboarding/nodes.py` | 节点进度更新 | 🟡 待完善 |
+| `backend/app/core/sse.py` | Redis pub/sub 封装（publish / subscribe generator） | 🔴 待建 |
+| `backend/app/api/v1/user/onboarding.py` | 新增 `GET /events/{task_id}` SSE 端点 | 🛠️ 待改 |
+| `backend/app/agents/graphs/onboarding/nodes.py` | 每个节点完成后 publish 进度事件 | 🛠️ 待改 |
+| `backend/app/agents/runner.py` | graph 开始/失败时 publish 事件 | 🛠️ 待改 |
 
-- [ ] **A6-1** — `backend/app/api/v1/user/onboarding.py` — 新增 `GET /onboarding/status/{task_id}` SSE 端点
-  - Content-Type: `text/event-stream`
-  - 从 `agent_tasks` 轮询 `progress_pct` + `progress_message` + `status`
-- [ ] **A6-2** — `backend/app/agents/graphs/onboarding/nodes.py` — 每个节点完成后调 `AgentTaskService.update_progress()` 更新进度（25%→50%→75%→100%）
-- [ ] **A6-3** — `backend/app/service/agent_task_service.py` — `complete_task` 时写入 `next_route: "/strategy-pack?draft=1"` 到 output_data
-- [ ] **A6-4** — `backend/app/api/v1/user/onboarding.py` — SSE 断线重连：客户端重连时从当前 `progress_pct` 继续推送
-- [ ] **A6-5** — `backend/tests/a_track/test_a6_sse.py` — ⚠️ 新建，验证 SSE 递增到 100 + next_route
-- [ ] **A6-6** — 验收：进度表 `A6 done`
+- [ ] **[A6-1](./steps/A6-1.md)** — 🆕 `core/sse.py` + 🛠️ nodes/runner/onboarding 接 Redis pub/sub SSE
+- [ ] **[A6-2](./steps/A6-2.md)** — 🧪 新建 `test_a6_sse.py`，4 条用例（mock Redis）
+- [ ] **🔍 A6 验收（审查者）** — 读执行记录 + git diff + 跑测试 → 更新进度表 + NOTIFY
 
 ---
 
