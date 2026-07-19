@@ -1,4 +1,5 @@
-"""Execute L2 graphs and sync AgentTask progress."""
+"""执行 L2 图并同步 AgentTask 进度。"""
+
 from __future__ import annotations
 
 from datetime import datetime
@@ -9,7 +10,11 @@ from sqlalchemy.orm import Session
 from app.agents.registry import get_graph_runner
 from app.agents.state import AgentGraphState
 from app.core.logging_config import get_logger
+from app.core.sse import publish_progress_async, build_event
 from app.service.agent_task_service import AgentTaskService
+
+# 触发各 graph 的 register_graph（副作用导入）
+import app.agents.graphs  # noqa: F401
 
 logger = get_logger(__name__)
 
@@ -44,6 +49,9 @@ async def run_graph(
             progress_message="graph started",
             started_at=datetime.utcnow(),
         )
+        await publish_progress_async(task_id, build_event(
+            progress_pct=0, progress_message="starting", step="start", status="running",
+        ))
 
     try:
         state = await runner(state)
@@ -64,4 +72,8 @@ async def run_graph(
         logger.exception("run_graph failed graph=%s: %s", graph_name, e)
         if task_id:
             AgentTaskService.complete_task(db, enterprise_id, task_id, error=str(e))
+            await publish_progress_async(task_id, build_event(
+                progress_pct=100, progress_message=str(e)[:200], step="error",
+                status="failed",
+            ))
         raise

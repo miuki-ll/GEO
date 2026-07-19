@@ -1,13 +1,5 @@
-"""Onboarding graph nodes — DIAGNOSE → PAIN → PERSONA → COMPETITOR.
+"""入驻引导图节点 — DIAGNOSE → PAIN → PERSONA → COMPETITOR。"""
 
-每个节点：
-  1. 从 state 读取输入
-  2. 调 gateway.chat()（或 search()）获取 LLM 结果
-  3. 解析 JSON 写入 state
-  4. 推进 progress_pct / progress_message
-
-LLM 输出约束：每个 prompt 末尾强制要求 `仅输出 JSON，不要加 markdown 或解释。`
-"""
 import asyncio
 import json
 import re
@@ -15,6 +7,7 @@ import re
 from app.agents.state import AgentGraphState
 from app.core.llm.gateway import chat, search, simple_prompt, simple_search
 from app.core.logging_config import get_logger
+from app.core.sse import publish_progress, build_event
 
 logger = get_logger(__name__)
 
@@ -147,6 +140,10 @@ async def diagnose_node(state: AgentGraphState) -> AgentGraphState:
     state["step"] = "PAIN"
     state["progress_pct"] = STEP_PCT[1]
     state["progress_message"] = STEP_MSG[1]
+    if state.get("task_id"):
+        publish_progress(state["task_id"], build_event(
+            progress_pct=STEP_PCT[1], progress_message=STEP_MSG[1], step="PAIN",
+        ))
     return state
 
 
@@ -200,6 +197,10 @@ async def pain_node(state: AgentGraphState) -> AgentGraphState:
     state["step"] = "PERSONA"
     state["progress_pct"] = STEP_PCT[2]
     state["progress_message"] = STEP_MSG[2]
+    if state.get("task_id"):
+        publish_progress(state["task_id"], build_event(
+            progress_pct=STEP_PCT[2], progress_message=STEP_MSG[2], step="PERSONA",
+        ))
     return state
 
 
@@ -264,6 +265,10 @@ async def persona_node(state: AgentGraphState) -> AgentGraphState:
     state["step"] = "COMPETITOR"
     state["progress_pct"] = STEP_PCT[3]
     state["progress_message"] = STEP_MSG[3]
+    if state.get("task_id"):
+        publish_progress(state["task_id"], build_event(
+            progress_pct=STEP_PCT[3], progress_message=STEP_MSG[3], step="COMPETITOR",
+        ))
     return state
 
 
@@ -319,6 +324,14 @@ async def competitor_node(state: AgentGraphState) -> AgentGraphState:
     state["step"] = "done"
     state["progress_pct"] = STEP_PCT["done"]
     state["progress_message"] = "入驻分析完成"
+    if state.get("task_id"):
+        publish_progress(state["task_id"], build_event(
+            progress_pct=STEP_PCT["done"],
+            progress_message="入驻分析完成",
+            step="done",
+            status="completed",
+            next_route="/strategy-pack?draft=1",
+        ))
     return state
 
 
@@ -332,6 +345,10 @@ async def run_onboarding_nodes(state: AgentGraphState) -> AgentGraphState:
     state["step"] = "DIAGNOSE"
     state["progress_pct"] = STEP_PCT[0]
     state["progress_message"] = STEP_MSG[0]
+    if state.get("task_id"):
+        publish_progress(state["task_id"], build_event(
+            progress_pct=STEP_PCT[0], progress_message=STEP_MSG[0], step="DIAGNOSE",
+        ))
 
     state = await diagnose_node(state)
     state = await pain_node(state)

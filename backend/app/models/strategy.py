@@ -1,4 +1,5 @@
-"""舱1 诊断延伸 + 舱2 策略 — scenario / 方案包 / Agent job。"""
+"""舱1 策略 + 舱2 场景 ORM — Scenario / Pack / Diagnosis / AgentTask。"""
+
 from sqlalchemy import (
     Boolean,
     Column,
@@ -50,6 +51,30 @@ class SourceDiagnosis(Base, TenantMixin, TimestampMixin):
     external_candidates = relationship("KBExternal", back_populates="source_diagnosis")
 
 
+class SearchResult(Base, TenantMixin, TimestampMixin):
+    """联网搜索原始结果 — 每条探针 × 每次搜索的 answer + citations。
+
+    与 MonitorResult 分离：SearchResult 存原始搜索数据，
+    MonitorResult 存分析后的监测采样（T0/T1/Δ）。
+    """
+
+    __tablename__ = "search_results"
+
+    id = Column(Integer, primary_key=True, index=True)
+    probe_query = Column(String(500), nullable=False, index=True)
+    engine = Column(String(50), nullable=False, index=True)
+    answer = Column(Text)
+    citations = Column(JSON, default=list)
+    # citations 每条：{url, title, summary, site_name, publish_time}
+    citation_count = Column(Integer, default=0)
+    diagnosis_batch_no = Column(String(50), index=True)
+    latency_ms = Column(Integer, default=0)
+    error = Column(Text)
+    metadata_ = Column("metadata_json", JSON, default=dict)
+
+    enterprise = relationship("Enterprise", back_populates="search_results")
+
+
 class Keyword(Base, TenantMixin, TimestampMixin):
     """词库 — 监测辅助，非生产起点。"""
 
@@ -61,9 +86,18 @@ class Keyword(Base, TenantMixin, TimestampMixin):
     pool_hint = Column(String(20), default="core", index=True)
     status = Column(String(20), default="draft", index=True)
     pain_cluster_id = Column(String(100))
+    layer = Column(String(20), default="", index=True)  # 认知层|选型层|痛点层|场景层
+    source = Column(String(20), default="手动", index=True)  # RawInputs|探针反推|SEO API|LLM生成|手动
+    lbs_tags = Column(JSON, default=list)  # ["静安区", "静安寺商圈"]
     metadata_ = Column("metadata_json", JSON, default=dict)
 
     enterprise = relationship("Enterprise", back_populates="keywords")
+
+    def __init__(self, **kwargs):
+        kwargs.setdefault("layer", "")
+        kwargs.setdefault("source", "手动")
+        kwargs.setdefault("lbs_tags", [])
+        super().__init__(**kwargs)
 
 
 class Scenario(Base, TenantMixin, TimestampMixin):

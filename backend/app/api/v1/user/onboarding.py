@@ -1,4 +1,7 @@
+"""用户端 — 入驻引导运行、状态、SSE、快照。"""
+
 from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
+from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
@@ -280,6 +283,34 @@ def onboarding_status(task_id: int, user: User = Depends(get_current_active_user
     if not t:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "任务不存在")
     return t
+
+
+@router.get("/events/{task_id}", summary="SSE 进度推送")
+async def onboarding_events(
+    task_id: int,
+    user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db),
+):
+    """SSE 端点 — 实时推送入驻进度。
+
+    前端用 EventSource 连接，无需轮询。
+    """
+    from app.core.sse import subscribe_progress
+
+    # 确认任务存在且属于当前用户
+    t = AgentTaskService.get(db, user.enterprise_id, task_id)
+    if not t:
+        raise HTTPException(status_code=404, detail="任务不存在")
+
+    return StreamingResponse(
+        subscribe_progress(task_id),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
+    )
 
 
 @router.get("/snapshot", response_model=DashboardData, summary="返回当前企业 S3 三舱全量 Dashboard")

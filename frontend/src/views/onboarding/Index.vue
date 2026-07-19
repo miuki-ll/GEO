@@ -11,7 +11,7 @@
           Agent 执行中 {{ store.progress }}%
         </el-tag>
         <el-tag v-else-if="store.status==='done'" type="success" effect="dark">已完成</el-tag>
-        <el-button plain @click="store.reset()" :disabled="store.status==='running'">重新开始</el-button>
+        <el-button plain @click="onReset" :disabled="store.status==='running'">重新开始</el-button>
         <el-button type="primary" @click="start" :disabled="store.status==='running'">
           {{ store.status==='idle' ? '立即开始' : store.status==='running' ? '运行中…' : '继续/重跑' }}
         </el-button>
@@ -49,6 +49,34 @@
           <el-form-item label="门店地址">
             <el-input v-model="form.address" placeholder="用于 AI 生成「附近推荐」类回答" />
           </el-form-item>
+          <el-divider content-position="left">品牌</el-divider>
+          <el-form-item label="品牌名称">
+            <el-input v-model="brandForm.name" placeholder="默认与企业名称相同" />
+          </el-form-item>
+          <el-form-item label="差异化描述">
+            <el-input v-model="brandForm.differentiator" type="textarea" :rows="2" placeholder="相对竞品的差异点" />
+          </el-form-item>
+          <el-form-item label="品牌 Slogan">
+            <el-input v-model="brandForm.slogan" placeholder="一句话品牌主张" />
+          </el-form-item>
+          <el-divider content-position="left">门店 / 引擎</el-divider>
+          <el-form-item label="城市">
+            <el-input v-model="storeForm.city" placeholder="例如：上海" />
+          </el-form-item>
+          <el-form-item label="商圈/区">
+            <el-input v-model="storeForm.district" placeholder="例如：静安区 / 静安寺" />
+          </el-form-item>
+          <el-form-item label="营业时间">
+            <el-input v-model="storeForm.business_hours" placeholder="例如：10:00-21:30" />
+          </el-form-item>
+          <el-form-item label="主攻 AI 引擎">
+            <el-select v-model="selectedEngines" multiple placeholder="选择目标引擎" style="width:100%">
+              <el-option label="豆包" value="doubao" />
+              <el-option label="DeepSeek" value="deepseek" />
+              <el-option label="Kimi" value="kimi" />
+              <el-option label="文心" value="wenxin" />
+            </el-select>
+          </el-form-item>
         </el-form>
       </template>
 
@@ -62,13 +90,51 @@
           <el-input v-model="f.content" type="textarea" :rows="2" placeholder="具体事实描述（用于 fact_refs 追溯）" />
         </div>
         <el-button plain @click="seedFacts.push({title:'',content:''})">+ 再加一条 Fact</el-button>
+
+        <el-divider content-position="left">服务项目</el-divider>
+        <div v-for="(s, i) in serviceList" :key="'svc-'+i" style="margin-bottom:14px;padding:12px;border:1px solid #ebeef5;border-radius:6px">
+          <el-form label-width="90px">
+            <el-form-item label="项目名称">
+              <el-input v-model="s.name" placeholder="例如：敏感肌修护" />
+            </el-form-item>
+            <el-form-item label="描述">
+              <el-input v-model="s.description" type="textarea" :rows="2" />
+            </el-form-item>
+            <el-form-item label="分类">
+              <el-input v-model="s.category" placeholder="例如：护理 / 抗衰" />
+            </el-form-item>
+            <el-form-item label="价格提示">
+              <el-input v-model="s.price_hint" placeholder="例如：398 起" />
+            </el-form-item>
+          </el-form>
+          <el-button v-if="serviceList.length > 1" text type="danger" @click="serviceList.splice(i, 1)">删除</el-button>
+        </div>
+        <el-button plain @click="serviceList.push({ name: '', description: '', category: '', price_hint: '' })">+ 再加一项服务</el-button>
       </template>
 
       <template v-else-if="store.currentStep === 2">
         <div style="margin-bottom:18px">
-          <h3 style="margin:0;font-size:16px">③ 用户画像（草稿预览）</h3>
-          <div style="color:#909399;font-size:13px;margin-top:4px">S4 阶段将由 DIAGNOSE→PERSONA LangGraph 子图基于种子 Fact 生成。</div>
+          <h3 style="margin:0;font-size:16px">③ 用户画像</h3>
+          <div style="color:#909399;font-size:13px;margin-top:4px">填写目标客群与自由补充；DIAGNOSE→PERSONA 会据此生成画像。</div>
         </div>
+        <el-form label-width="120px" style="max-width: 640px; margin-bottom: 18px">
+          <el-form-item label="目标客群">
+            <el-input
+              v-model="targetCustomers"
+              type="textarea"
+              :rows="3"
+              placeholder="例如：25-45 岁城市女性，中高收入，敏感肌/抗衰需求"
+            />
+          </el-form-item>
+          <el-form-item label="自由输入">
+            <el-input
+              v-model="rawInputs"
+              type="textarea"
+              :rows="4"
+              placeholder="想对 AI 说的任何补充信息（会写入 Enterprise.raw_inputs，供词库汇聚）"
+            />
+          </el-form-item>
+        </el-form>
         <el-descriptions :column="2" border>
           <el-descriptions-item label="核心人群">25-45 岁城市女性，中高收入</el-descriptions-item>
           <el-descriptions-item label="典型地域">XX 区 3km 范围，白领/宝妈为主</el-descriptions-item>
@@ -82,10 +148,20 @@
 
       <template v-else-if="store.currentStep === 3">
         <div style="margin-bottom:18px">
-          <h3 style="margin:0;font-size:16px">④ 竞品分析（草稿预览）</h3>
-          <div style="color:#909399;font-size:13px;margin-top:4px">S4 将从 AI 提及中抓取竞品，输出差异化机会点。</div>
+          <h3 style="margin:0;font-size:16px">④ 竞品分析</h3>
+          <div style="color:#909399;font-size:13px;margin-top:4px">先填已知竞品名称（一行一个）；S4 将从 AI 提及中补充差异化机会点。</div>
         </div>
-        <el-table :data="competitors" border stripe>
+        <el-form label-width="120px" style="max-width: 640px; margin-bottom: 18px">
+          <el-form-item label="已知竞品">
+            <el-input
+              v-model="competitorsText"
+              type="textarea"
+              :rows="4"
+              placeholder="一行一个竞品名称"
+            />
+          </el-form-item>
+        </el-form>
+        <el-table :data="competitorsPreview" border stripe>
           <el-table-column prop="name" label="竞品" />
           <el-table-column prop="type" label="类型" width="110" />
           <el-table-column label="AI 提及率" width="140">
@@ -145,7 +221,7 @@
         </el-alert>
         <el-descriptions :column="2" border size="small">
           <el-descriptions-item label="核心 Scenario">{{ scenarios.length }} 个（MVP-A 首轮）</el-descriptions-item>
-          <el-descriptions-item label="覆盖引擎">豆包 / DeepSeek / Kimi / 文心</el-descriptions-item>
+          <el-descriptions-item label="覆盖引擎">{{ selectedEngines.join(' / ') || '未选择' }}</el-descriptions-item>
           <el-descriptions-item label="首轮 SKU">FAQ × 1 + 小红书 × 1</el-descriptions-item>
           <el-descriptions-item label="发布模式">托管页 AUTO + 小红书 SEMI</el-descriptions-item>
         </el-descriptions>
@@ -187,33 +263,64 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, watch } from 'vue'
+import { ref, reactive, watch, onBeforeUnmount } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Loading } from '@element-plus/icons-vue'
 import ProgressChain, { type ChainStep } from '@/components/ProgressChain.vue'
 import { useOnboardingStore } from '@/stores/onboarding'
-import { runOnboarding, getOnboardingStatus } from '@/api/onboarding'
+import {
+  runOnboarding,
+  subscribeOnboardingEvents,
+  type OnboardingRunRequest,
+} from '@/api/onboarding'
 
 defineProps<{ steps?: ChainStep[] }>()
 
 const router = useRouter()
 const store = useOnboardingStore()
 
+const fd = store.formData
+const primaryStore = fd.stores[0] || {
+  name: '',
+  city: '',
+  district: '',
+  address: '',
+  phone: '',
+  business_hours: '10:00-21:30',
+}
+
 const form = reactive({
-  name: 'XX 皮肤管理中心（XX路店）',
-  industry: 'beauty_local',
-  license: '',
-  contact_name: 'Demo User',
-  contact_phone: '',
-  address: 'XX 市 XX 区 XX 路 88 号 2F',
+  name: fd.enterprise.name,
+  industry: fd.enterprise.industry || 'beauty_local',
+  license: fd.enterprise.license_no,
+  contact_name: fd.enterprise.contact_name,
+  contact_phone: fd.enterprise.contact_phone,
+  address: primaryStore.address,
 })
 
-const seedFacts = ref([
-  { title: '门店资质', content: '本机构持有《卫生许可证》与《营业执照》，美容师均持资格证上岗。' },
-  { title: '敏感肌项目说明', content: '敏感肌修护采用 XXX 植物萃取，经斑贴测试 0 过敏率。' },
-  { title: '地址与营业时间', content: form.address + '，营业时间 10:00-21:30，全年无休。' },
-])
+const brandForm = reactive({
+  name: fd.brand.name,
+  differentiator: fd.brand.differentiator,
+  slogan: fd.brand.slogan,
+})
+
+const storeForm = reactive({
+  city: primaryStore.city,
+  district: primaryStore.district,
+  business_hours: primaryStore.business_hours || '10:00-21:30',
+})
+
+const selectedEngines = ref<string[]>([...(fd.target_engines || ['doubao'])])
+const seedFacts = ref(fd.seed_facts.map((f) => ({ ...f })))
+const serviceList = ref(
+  (fd.services.length ? fd.services : [{ name: '', description: '', category: '', price_hint: '' }]).map(
+    (s) => ({ ...s }),
+  ),
+)
+const targetCustomers = ref(fd.target_customers || '')
+const rawInputs = ref(fd.raw_inputs || '')
+const competitorsText = ref((fd.competitors || []).join('\n'))
 
 const sampleQueries = [
   '敏感肌泛红去哪里做护理比较好？',
@@ -221,7 +328,7 @@ const sampleQueries = [
   'XX 区附近做抗衰的美容院',
 ]
 
-const competitors = ref([
+const competitorsPreview = ref([
   { name: '连锁品牌A', type: '连锁', rate: 42, gap: '我们更本地、更深度服务，客制化方案' },
   { name: '附近门店B', type: '本地', rate: 18, gap: '资质齐全 + 明确成分清单' },
   { name: '工作室C', type: '工作室', rate: 5, gap: '卫生透明 + 正规发票' },
@@ -243,38 +350,154 @@ const weights = ref([40, 25, 15, 15, 5])
 
 const confirmed1 = ref(false)
 
+let es: EventSource | null = null
+
+function syncFormDataToStore() {
+  store.formData.enterprise = {
+    name: form.name,
+    industry: form.industry,
+    license_no: form.license,
+    contact_name: form.contact_name,
+    contact_phone: form.contact_phone,
+  }
+  store.formData.brand = {
+    name: brandForm.name,
+    differentiator: brandForm.differentiator,
+    slogan: brandForm.slogan,
+  }
+  store.formData.stores = [
+    {
+      name: form.name,
+      city: storeForm.city,
+      district: storeForm.district,
+      address: form.address,
+      phone: form.contact_phone,
+      business_hours: storeForm.business_hours,
+    },
+  ]
+  store.formData.services = serviceList.value.map((s) => ({ ...s }))
+  store.formData.competitors = competitorsText.value
+    .split('\n')
+    .map((s) => s.trim())
+    .filter(Boolean)
+  store.formData.target_customers = targetCustomers.value
+  store.formData.raw_inputs = rawInputs.value
+  store.formData.seed_facts = seedFacts.value.map((f) => ({ ...f }))
+  store.formData.target_engines = [...selectedEngines.value]
+}
+
 function onStepChange(i: number) {
   if (store.status === 'running') return
+  syncFormDataToStore()
   store.setStep(i)
 }
 
-async function start() {
-  try {
-    const data = await runOnboarding({ industry: form.industry, mode: 'quick' })
-    store.setStatus('running', { taskId: data.data?.task_id || 'task_' + Date.now(), progress: 0, message: '开始执行 Agent...' })
-    ElMessage.success(data.message || '已启动向导任务')
-    await pollStatus()
-  } catch (e) {
-    store.setStatus('idle')
-  }
+function onReset() {
+  es?.close()
+  es = null
+  store.reset()
 }
 
-async function pollStatus() {
-  const taskId = store.taskId
-  if (!taskId) return
-  let round = 0
-  while (round < 30) {
-    round++
-    try {
-      const res = await getOnboardingStatus(taskId)
-      const s = res.data
-      if (s) {
-        store.setStatus(s.status, { progress: s.progress_pct, message: s.progress_message })
-        if (s.status === 'done' && s.step != null) store.setStep(Math.min(s.step, store.steps.length - 1))
-        if (s.status === 'done' || s.status === 'failed') break
+async function start() {
+  syncFormDataToStore()
+
+  if (!form.name?.trim()) {
+    ElMessage.warning('请填写企业名称')
+    return
+  }
+
+  const body: OnboardingRunRequest = {
+    enterprise: {
+      name: form.name,
+      industry: form.industry,
+      license_no: form.license,
+      contact_name: form.contact_name,
+      contact_phone: form.contact_phone,
+    },
+    brand: {
+      name: brandForm.name || form.name,
+      differentiator: brandForm.differentiator,
+      slogan: brandForm.slogan,
+    },
+    stores: [
+      {
+        name: form.name,
+        city: storeForm.city,
+        district: storeForm.district,
+        address: form.address,
+        phone: form.contact_phone,
+        business_hours: storeForm.business_hours,
+        is_primary: true,
+      },
+    ],
+    services: serviceList.value
+      .filter((s) => s.name?.trim())
+      .map((s) => ({
+        name: s.name,
+        description: s.description,
+        category: s.category,
+        price_hint: s.price_hint,
+      })),
+    competitors: competitorsText.value
+      .split('\n')
+      .map((s) => s.trim())
+      .filter(Boolean),
+    target_customers: targetCustomers.value,
+    raw_inputs: rawInputs.value,
+    seed_facts: seedFacts.value.filter((f) => f.title && f.content),
+    target_engines: selectedEngines.value,
+    search_enabled: true,
+  }
+
+  try {
+    store.setStatus('running', { progress: 0, message: '正在提交入驻数据…' })
+    const res: any = await runOnboarding(body)
+    // AgentTaskResponse 直接返回（无 data 信封）；兼容 data.task_id
+    const taskId = res?.data?.task_id ?? res?.task_id ?? res?.data?.id ?? res?.id
+    if (!taskId) throw new Error('未返回 task_id')
+
+    store.taskId = taskId
+
+    es?.close()
+    es = subscribeOnboardingEvents(taskId)
+    es.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data)
+        const rawStatus = String(data.status || 'running')
+        const mapped =
+          rawStatus === 'completed' || rawStatus === 'done'
+            ? 'done'
+            : rawStatus === 'failed'
+              ? 'failed'
+              : 'running'
+        store.setStatus(mapped, {
+          progress: Number(data.progress_pct) || 0,
+          message: data.progress_message || '',
+        })
+        if (mapped === 'done') {
+          es?.close()
+          es = null
+          ElMessage.success('入驻完成！')
+          setTimeout(() => router.push('/outcomes'), 1000)
+        } else if (mapped === 'failed') {
+          es?.close()
+          es = null
+          ElMessage.error(data.progress_message || '入驻失败')
+        }
+      } catch {
+        /* ignore malformed SSE chunk */
       }
-    } catch {}
-    await new Promise((r) => setTimeout(r, 1200))
+    }
+    es.onerror = () => {
+      es?.close()
+      es = null
+      if (store.status === 'running') {
+        store.setStatus('failed', { message: 'SSE 连接中断' })
+      }
+    }
+  } catch (e: any) {
+    store.setStatus('idle')
+    ElMessage.error(e?.response?.data?.detail || e?.message || '提交失败')
   }
 }
 
@@ -291,6 +514,22 @@ async function onConfirmPack() {
 
 watch(
   () => form.address,
-  (v) => (seedFacts.value[2].content = v + '，营业时间 10:00-21:30，全年无休。'),
+  (v) => {
+    if (seedFacts.value[2]) {
+      seedFacts.value[2].content =
+        v + `，营业时间 ${storeForm.business_hours || '10:00-21:30'}，全年无休。`
+    }
+  },
 )
+
+watch(
+  [form, brandForm, storeForm, selectedEngines, seedFacts, serviceList, targetCustomers, rawInputs, competitorsText],
+  () => syncFormDataToStore(),
+  { deep: true },
+)
+
+onBeforeUnmount(() => {
+  es?.close()
+  es = null
+})
 </script>

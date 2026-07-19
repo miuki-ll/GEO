@@ -1,4 +1,5 @@
-"""租户 / 用户 / 企业档案 — 对齐 schemas/auth.py。"""
+"""租户 / 用户 / 企业结构 ORM — 对齐 schemas/auth。"""
+
 from datetime import datetime
 
 from sqlalchemy import (
@@ -32,6 +33,7 @@ class Enterprise(Base, TimestampMixin):
     plan = Column(String(30), default="mvp")
     settings = Column(JSON, default=dict)
     kb_updated_at = Column(DateTime)
+    raw_inputs = Column(Text, default="")  # A5 入驻时用户填的原始输入，A8 词库汇聚用
 
     members = relationship("User", back_populates="enterprise", cascade="all, delete-orphan")
     brand = relationship("Brand", back_populates="enterprise", uselist=False, cascade="all, delete-orphan")
@@ -55,6 +57,11 @@ class Enterprise(Base, TimestampMixin):
     approval_logs = relationship("ApprovalLog", back_populates="enterprise", cascade="all, delete-orphan")
     agent_traces = relationship("AgentTrace", back_populates="enterprise", cascade="all, delete-orphan")
     hosted_page_events = relationship("HostedPageEvent", back_populates="enterprise", cascade="all, delete-orphan")
+    search_results = relationship("SearchResult", back_populates="enterprise", cascade="all, delete-orphan")
+
+    def __init__(self, **kwargs):
+        kwargs.setdefault("raw_inputs", "")
+        super().__init__(**kwargs)
 
     @classmethod
     def touch_kb(cls, db, enterprise_id: int):

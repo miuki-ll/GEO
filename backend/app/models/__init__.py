@@ -1,17 +1,5 @@
-"""ORM 模型 — 与 schemas/ 按域一一对应。
+"""ORM 模型包 — 与 schemas/ 按域对应。"""
 
-| models/      | schemas/        |
-|--------------|-----------------|
-| auth.py      | auth.py         |
-| kb.py        | kb.py           |
-| strategy.py  | strategy.py + diagnosis.py + agent.py |
-| content.py   | content.py      |
-| publish.py   | publish.py      |
-| monitor.py   | monitor.py + dashboard.py |
-| audit.py     | content.py (ApprovalLog) |
-| events.py    | —               |
-| ops.py       | —               |
-"""
 from app.models.base import TimestampMixin, TenantMixin
 
 from app.models.auth import Enterprise, User, RolePermission, Brand, Store, Service
@@ -19,6 +7,7 @@ from app.models.auth import Enterprise, User, RolePermission, Brand, Store, Serv
 from app.models.strategy import (
     TargetEngine,
     SourceDiagnosis,
+    SearchResult,
     Keyword,
     Scenario,
     StrategyPackDraft,
@@ -55,6 +44,7 @@ __all__ = [
     "KBExternal",
     "TargetEngine",
     "SourceDiagnosis",
+    "SearchResult",
     "Keyword",
     "Scenario",
     "StrategyPackDraft",

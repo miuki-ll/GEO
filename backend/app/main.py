@@ -1,9 +1,5 @@
-"""
-GEO 后端入口（大门）
+"""FastAPI 应用入口 — CORS、异常处理、lifespan、create_app。"""
 
-职责：组装 FastAPI 应用 — CORS、异常处理、生命周期、路由挂载。
-业务路由不在这里一条条挂，统一收进 v1_router（见 app/api/v1/__init__.py）。
-"""
 from contextlib import asynccontextmanager
 from typing import Optional
 
@@ -100,6 +96,9 @@ def create_app() -> FastAPI:
     # 健康检查（不进版本前缀）+ 业务 API v1 总路由
     app.include_router(health_router, prefix="", tags=["系统"])
     app.include_router(v1_router)  # 聚合点：app/api/v1/__init__.py
+
+    from app.api.v1.user.keyword import router as keyword_router
+    app.include_router(keyword_router)
 
     # MCP（Model Context Protocol，给 AI 工具调用的接口）— 配置开关控制
     if settings.MCP_ENABLED:

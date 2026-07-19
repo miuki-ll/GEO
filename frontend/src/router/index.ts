@@ -2,6 +2,7 @@ import { createRouter, createWebHistory, RouteRecordRaw } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import NProgress from 'nprogress'
 import { useUserStore } from '@/stores/user'
+import { getEnterprise } from '@/api/enterprise'
 
 const routes: RouteRecordRaw[] = [
   {
@@ -87,15 +88,41 @@ const router = createRouter({
   },
 })
 
+/** 入驻完成缓存：一旦 true 不再重复请求；登出后清空 */
+let onboardedCache: boolean | null = null
+
+export function clearOnboardingCache() {
+  onboardedCache = null
+}
+
+async function resolveOnboarded(): Promise<boolean> {
+  if (onboardedCache === true) return true
+  try {
+    const res = await getEnterprise()
+    const settings = (res.data as any)?.settings || {}
+    // A5 写入 settings.onboarding.completed_at；兼容 onboarding_done 标记
+    const ok = !!(settings.onboarding_done || settings.onboarding?.completed_at)
+    if (ok) onboardedCache = true
+    return ok
+  } catch {
+    return false
+  }
+}
+
 router.beforeEach(async (to, _from, next) => {
   NProgress.start()
   const titleSuffix = import.meta.env.VITE_APP_TITLE
   document.title = to.meta?.title ? `${to.meta.title} · ${titleSuffix}` : titleSuffix
   const userStore = useUserStore()
 
+  if (!userStore.isLoggedIn) {
+    onboardedCache = null
+  }
+
   if (to.meta?.public) {
     if ((to.name === 'Login' || to.name === 'Register') && userStore.isLoggedIn) {
-      return next('/outcomes')
+      const isOnboarded = await resolveOnboarded()
+      return next(isOnboarded ? '/outcomes' : { name: 'Onboarding' })
     }
     return next()
   }
@@ -108,9 +135,22 @@ router.beforeEach(async (to, _from, next) => {
       await userStore.fetchUser()
     } catch {
       userStore.logout()
+      onboardedCache = null
       return next({ name: 'Login' })
     }
   }
+  if (!userStore.user) {
+    userStore.logout()
+    onboardedCache = null
+    return next({ name: 'Login' })
+  }
+
+  // 未入驻用户强制跳转入驻页（设置页可进）
+  const isOnboarded = await resolveOnboarded()
+  if (!isOnboarded && to.name !== 'Onboarding' && to.name !== 'Settings') {
+    return next({ name: 'Onboarding' })
+  }
+
   next()
 })
 

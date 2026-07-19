@@ -252,10 +252,10 @@
 | `backend/app/service/diagnosis_service.py` | A7 search_results（探针来源） | 🟡 依赖 A7 |
 | `backend/app/api/v1/user/onboarding.py` | A5 raw_inputs 写入 Enterprise | 🟡 依赖 A5 |
 
-- [ ] **[A8-1](./steps/A8-1.md)** — 🛠️ Keyword 加 layer/source/lbs_tags + Enterprise 加 raw_inputs + schema 新建 + migration
-- [ ] **[A8-2](./steps/A8-2.md)** — 🆕 `keyword_service.py`：四源汇聚 + LLM 四层分类 + CRUD
-- [ ] **[A8-3](./steps/A8-3.md)** — 🆕 `keyword.py` 路由：POST /generate（Celery）+ CRUD + SSE events + 四层汇总
-- [ ] **[A8-4](./steps/A8-4.md)** — 🧪 新建 `test_a8_keywords.py`，6 条用例（mock LLM）
+- [x] **[A8-1](./steps/A8-1.md)** — 🛠️ Keyword 加 layer/source/lbs_tags + Enterprise 加 raw_inputs + schema 新建 + migration
+- [x] **[A8-2](./steps/A8-2.md)** — 🆕 `keyword_service.py`：四源汇聚 + LLM 四层分类 + CRUD
+- [x] **[A8-3](./steps/A8-3.md)** — 🆕 `keyword.py` 路由：POST /generate（Celery）+ CRUD + SSE events + 四层汇总
+- [x] **[A8-4](./steps/A8-4.md)** — 🧪 新建 `test_a8_keywords.py`，6 条用例（mock LLM）
 - [ ] **🔍 A8 验收（审查者）** — 读执行记录 + git diff + 跑测试 → 更新进度表 + NOTIFY B（关键）
 
 ### ✅ A8 已确定
@@ -290,10 +290,11 @@
 | `frontend/src/views/Login.vue` | 登录页 | 🟢 已可用 |
 | `frontend/src/views/Register.vue` | 注册页 | 🟢 已可用 |
 
-- [ ] **[A9-1](./steps/A9-1.md)** — 🛠️ 入驻向导：更新 API 类型 + 补齐表单字段 + SSE 进度 + 分步收集数据
-- [ ] **[A9-2](./steps/A9-2.md)** — 🛠️ 知识库：Fact/FAQ 接真实 CRUD + 新增词库四层面板
-- [ ] **[A9-3](./steps/A9-3.md)** — 🛠️ 设置页：企业信息 + 团队成员接真实 API + 路由守卫按入驻状态跳转
-- [ ] **[A9-4](./steps/A9-4.md)** — 🔍 前端全链路验证：vue-tsc 类型检查 + 手工烟雾测试（10 步）
+- [x] **[A9-1](./steps/A9-1.md)** — 🛠️ 入驻向导：更新 API 类型 + 补齐表单字段 + SSE 进度 + 分步收集数据
+- [x] **[A9-2](./steps/A9-2.md)** — 🛠️ 知识库：Fact/FAQ 接真实 CRUD + 新增词库四层面板
+- [x] **[A9-3](./steps/A9-3.md)** — 🛠️ 设置页：企业信息 + 团队成员接真实 API + 路由守卫按入驻状态跳转
+- [x] **[A9-4](./steps/A9-4.md)** — 🔍 前端全链路验证：vue-tsc 类型检查 + 手工烟雾测试（10 步）
+  > 注：vue-tsc ✅；API 烟雾 S1–S4/S6–S10 ✅；S5 SSE/LLM 受环境限制见执行记录（副作用仍写入）
 - [ ] **🔍 A9 验收（审查者）** — 读执行记录 + git diff + 手工验证关键路径
 
 ### ✅ A9 已确定

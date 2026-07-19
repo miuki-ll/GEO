@@ -126,3 +126,66 @@ export function updateExternal(id: number, data: Partial<ExternalForm>) {
 export function deleteExternal(id: number) {
   return request.delete<any, ApiResponse<any>>(`/api/v1/user/kb/externals/${id}`)
 }
+
+// ── Keywords（A8 词库）──
+
+export interface KeywordItem {
+  id: number
+  enterprise_id: number
+  phrase: string
+  layer: string  // 认知层|选型层|痛点层|场景层
+  source: string  // RawInputs|探针反推|SEO API|LLM生成|手动
+  lbs_tags: string[]
+  keyword_type: string
+  pool_hint: string
+  status: string
+  created_at?: string
+  updated_at?: string
+}
+
+export interface KeywordForm {
+  phrase: string
+  layer?: string
+  source?: string
+  lbs_tags?: string[]
+  keyword_type?: string
+  pool_hint?: string
+}
+
+export interface KeywordListParams extends PaginationParams {
+  layer?: string
+  source?: string
+  keyword_type?: string
+  pool_hint?: string
+  search?: string
+}
+
+export interface KeywordGenerateResponse {
+  task_id: number
+  message: string
+}
+
+export interface LayerSummary {
+  layer: string
+  count: number
+  keywords: string[]
+}
+
+export function listKeywords(params: KeywordListParams = {}) {
+  return request.get<any, ApiResponse<{ items: KeywordItem[]; total: number; page: number; page_size: number }>>('/api/v1/user/keywords', { params })
+}
+export function createKeyword(data: KeywordForm) {
+  return request.post<any, ApiResponse<KeywordItem>>('/api/v1/user/keywords', data)
+}
+export function updateKeyword(id: number, data: Partial<KeywordForm>) {
+  return request.put<any, ApiResponse<KeywordItem>>(`/api/v1/user/keywords/${id}`, data)
+}
+export function deleteKeyword(id: number) {
+  return request.delete<any, ApiResponse<any>>(`/api/v1/user/keywords/${id}`)
+}
+export function generateKeywords() {
+  return request.post<any, ApiResponse<KeywordGenerateResponse> | KeywordGenerateResponse>('/api/v1/user/keywords/generate', {})
+}
+export function getKeywordLayerSummary() {
+  return request.get<any, ApiResponse<LayerSummary[]>>('/api/v1/user/keywords/summary/layers')
+}
