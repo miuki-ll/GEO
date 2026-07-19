@@ -174,6 +174,7 @@
 - [x] **[A5-2](./steps/A5-2.md)** — 🛠️ `onboarding.py` 改造：新 `OnboardingRunRequest` schema + 切 `runner.run_graph()` + Brand/Store/Service 副作用写入
 - [x] **[A5-3](./steps/A5-3.md)** — 🛠️ KB 自动建库：seed_facts → KBFact/KBSignal + thin_kb_check + llms.txt 骨架
 - [x] **[A5-4](./steps/A5-4.md)** — 🧪 新建 `test_a5_onboarding.py`，6 条用例（mock LLM 全流程）
+- [x] **🔍 A5 验收（审查者）** — ✅ 审查通过（2026-07-19）：代码质量好，4 节点 LLM + 并行 search 兜底 + 副作用写入 + KB 自动建库设计合理。已 NOTIFY B → G3
 
 ### A6 · onboarding SSE 进度
 > **方案**：Redis pub/sub SSE 实时推送 — `core/sse.py` 封装 + nodes/runner 发布事件 + `/events/{task_id}` 端点
@@ -187,9 +188,9 @@
 | `backend/app/agents/graphs/onboarding/nodes.py` | 每个节点完成后 publish 进度事件 | 🛠️ 待改 |
 | `backend/app/agents/runner.py` | graph 开始/失败时 publish 事件 | 🛠️ 待改 |
 
-- [ ] **[A6-1](./steps/A6-1.md)** — 🆕 `core/sse.py` + 🛠️ nodes/runner/onboarding 接 Redis pub/sub SSE
-- [ ] **[A6-2](./steps/A6-2.md)** — 🧪 新建 `test_a6_sse.py`，4 条用例（mock Redis）
-- [ ] **🔍 A6 验收（审查者）** — 读执行记录 + git diff + 跑测试 → 更新进度表 + NOTIFY
+- [x] **[A6-1](./steps/A6-1.md)** — 🆕 `core/sse.py` + 🛠️ nodes/runner/onboarding 接 Redis pub/sub SSE
+- [x] **[A6-2](./steps/A6-2.md)** — 🧪 新建 `test_a6_sse.py`，4 条用例（mock Redis）
+- [x] **🔍 A6 验收（审查者）** — ✅ 审查通过（2026-07-19）：Redis pub/sub SSE 设计干净，4 条测试覆盖完整，向后兼容轮询接口
 
 ---
 
@@ -198,42 +199,35 @@
 ---
 
 ### A7 · 诊断 5 项 + 写 T0 ⚠️ 部分已有，需补全
-> **现状态**：`diagnosis.py` 有 pain/persona/competitor 三个 GET + `/all` POST，但 diagnosis_service 用随机默认数据，非 LLM 驱动
-> **联网搜索方案**（2026-07-18 验证通过）：
-> - Responses API + `web_search` tool → 每条探针约 2-3min，返回 9+ citations（每条 summary 1200+字）
-> - citations → `source_diagnoses.payload` 持久化 → 喂 LLM 做痛点/场景/竞品分析
-> - **详细文档**：[豆包.md](../../../豆包.md)
+> **方案**：Celery 异步 + 并行 search（≤5）+ `search_results` 独立表 + 非豆包跳过
+> **现状态**：`diagnosis.py` 路由存在，`diagnosis_service.py` 硬编码假数据
 > **涉及文件**：
 
 | 文件 | 作用 | 状态 |
 |------|------|:--:|
-| `backend/app/api/v1/user/diagnosis.py` | 诊断路由（pain/persona/competitor/all） | 🟡 部分 |
-| `backend/app/service/diagnosis_service.py` | diagnose_probe/batch_search/build_source_map/analyze_competitors/write_t0 | 🟡 需重写 |
-| `backend/app/models/strategy.py` | SourceDiagnosis / Keyword model | 🟢 已有 |
-| `backend/app/models/monitor.py` | MonitorResult（T0 写入目标） | 🟢 已有 |
-| `backend/app/schemas/diagnosis.py` | 诊断 response schema | 🟡 待补 SourceMap/Citation/SearchResult |
-| `backend/app/schemas/business.py` | PersonaData / CompetitorItem / PainPoint | 🟡 待确认 |
-| `backend/app/core/llm/gateway.py` | A3 gateway.chat() + gateway.search()（A3-3 新增） | 🟡 依赖 A3-3 |
+| `backend/app/models/strategy.py` | 新增 `SearchResult` 模型 | 🛠️ 待改 |
+| `backend/app/models/auth.py` | Enterprise 加 `search_results` relationship | 🛠️ 待改 |
+| `backend/app/models/__init__.py` | 导出 SearchResult | 🛠️ 待改 |
+| `backend/app/schemas/diagnosis.py` | 新增 SearchCitation/SearchResult*/SourceMap/DiagnosisFullResponse | 🛠️ 待改 |
+| `backend/app/service/diagnosis_service.py` | 重写：generate_probes/batch_search/analyze_from_citations/build_source_map/write_t0_baseline | 🛠️ 重写 |
+| `backend/app/api/v1/user/diagnosis.py` | POST /all 改 Celery + GET /{batch_no} 五区 JSON + SSE events | 🛠️ 待改 |
+| `backend/app/tasks/all_tasks.py` | diagnosis_run 改调新 service + SSE publish | 🛠️ 待改 |
+| `backend/app/models/monitor.py` | MonitorResult（T0 写入目标，baseline 字段已有） | 🟢 已有 |
+| `backend/app/core/llm/gateway.py` | A3 gateway.chat() + gateway.search() | 🟢 已有 |
 
-- [ ] **A7-1** — 重写 `diagnose_probe()`：品类+商圈+店名→`gateway.chat()`→20-30条自然问句
-- [ ] **A7-2** — 新增 `batch_search_engines()`：逐条探针调 `gateway.search()`（豆包联网搜索），记录 answer+citations，并发控制（QPS≤5）
-- [ ] **A7-3** — 新增 `analyze_from_citations()`：从 citations[].summary + answer 调 `gateway.chat()`→brand_mentioned/rank/competitor_occupancy/pain_points/track
-- [ ] **A7-4** — 新增 `build_source_map()`：从 citations 聚合 domain→count→weight→rankings+gaps
-- [ ] **A7-5** — 新增 `write_t0_baseline()`：探针+answer+citations 全量写入 `monitor_results`，`metadata_json.baseline=true`
-- [ ] **A7-6** — `GET /diagnosis/{id}` 返回完整五区 JSON（见下方设计）
-- [ ] **A7-7** — `POST /diagnosis/all` 改为异步流水线：generate_probes→batch_search→analyze→build_map→write_t0，SSE 推进度
-- [ ] **A7-8** — `backend/app/schemas/diagnosis.py` — 新增 Citation / SearchResult / SourceMap / DiagnosisFullResponse
-- [ ] **A7-9** — `backend/tests/a_track/test_a7_diagnosis.py` — ⚠️ 新建
-- [ ] **A7-10** — 验收：进度表 `A7 done`，发 **NOTIFY B（关键）**
-- [ ] **A7-11** — `backend/tests/fixtures/handoff_a_to_b/diagnosis.json` — 按真实输出形状刷新
+- [ ] **[A7-1](./steps/A7-1.md)** — 🆕 `search_results` 独立表 + schema（SearchCitation/SearchResult*/SourceMap/DiagnosisFullResponse）+ migration
+- [ ] **[A7-2](./steps/A7-2.md)** — 🛠️ 重写 `diagnosis_service.py`：generate_probes → batch_search(Celery+并发5) → analyze → source_map → write_t0
+- [ ] **[A7-3](./steps/A7-3.md)** — 🛠️ `diagnosis.py` 路由改造：POST /all 调 Celery + GET /{batch_no} 五区 JSON + SSE events
+- [ ] **[A7-4](./steps/A7-4.md)** — 🧪 新建 `test_a7_diagnosis.py`，5 条用例（mock LLM + search）
+- [ ] **🔍 A7 验收（审查者）** — 读执行记录 + git diff + 跑测试 → 更新进度表 + NOTIFY B（关键）
 
-### 🟡 A7 待确定
+### ✅ A7 已确定
 
-| # | 问题 | 状态 |
-|---|------|:--:|
-| 1 | 25条探针×180s=75min 太慢，异步+并发怎么设计？ | 待讨论 |
-| 2 | 非豆包引擎（DeepSeek/Kimi）没有联网搜索，诊断跳过还是模拟？ | 待定 |
-| 3 | citations 的 summary 持久化到哪？`source_diagnoses.payload` 还是独立表？ | 倾向于 payload JSON |
+| # | 问题 | 决策 |
+|---|------|------|
+| 1 | 并发方案 | **Celery + asyncio.Semaphore(5)** 并行 search |
+| 2 | 非豆包引擎 | **跳过**（不调 chat 模拟） |
+| 3 | citations 持久化 | **`search_results` 独立表**（JSON 存 citations） |
 
 ---
 
