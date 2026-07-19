@@ -18,11 +18,11 @@ from app.service import DashboardService, AgentTaskService, DiagnosisService, St
 router = APIRouter(prefix=f"{settings.API_V1_PREFIX}/user/outcomes", tags=["用户端·舱3·效果舱"])
 
 
-@router.get("/dashboard", response_model=ApiResponse, summary="F1.1 效果舱 Dashboard（KPI + 拆解）")
+@router.get("/dashboard", response_model=ApiResponse, summary="B7 效果舱 Dashboard（kpi Δ + funnel）")
 def dashboard(period: str = Query("week", pattern="^(day|week|month|quarter)$"),
               user: User = Depends(get_current_active_user), db: Session = Depends(get_db)):
     d = DashboardService.compute(db, user.enterprise_id, period)
-    return {"code": 0, "message": "", "data": d.model_dump()}
+    return {"code": 0, "message": "ok", "data": d.model_dump()}
 
 
 @router.post("/snapshot", response_model=OutcomeSnapshotResponse, summary="生成当期效果快照")

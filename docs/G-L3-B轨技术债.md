@@ -32,12 +32,12 @@
 | TD-04 | **P1** | `forbidden_words` 布尔语义与手册示例相反 | B4 | G3 / AC-03 前 | `done` |
 | TD-05 | **P2** | 发布模式大小写 `AUTO` vs `auto` | B5 | 契约终态时 | `open` |
 | TD-06 | **P2** | 草稿状态多了 `approved` | B4/B8 | 契约终态时 | `open` |
-| TD-07 | **P2** | 禁词兜底硬编码灰区 | B4 | A0 真接时删 | `open` |
-| TD-08 | **P2** | B8 监测/效果舱仍为前端假数据 | B8 | 跟 B6/B7 | `open` |
+| TD-07 | **P2** | 禁词兜底硬编码灰区 | B4 | A0 真接时删 | `done` |
+| TD-08 | **P2** | B8 监测/效果舱仍为前端假数据 | B8 | 跟 B6/B7 | `done` |
 | TD-09 | **P1** | B0–B1 手测清单未落盘 | B0/B1 | 补记录即可 | `open` |
 | TD-10 | **P0** | `monitor_results` 无 `baseline`，无法区分 T0/T1 | B6 前置 | B6 开工时 | `done` |
 | TD-11 | **P2** | 方案包页缺 `TODO(WAIT_FOR: A7+A8)`；scenario 勾选未硬限 5 | B1/B8 | 真接前 | `done` |
-| TD-12 | **P2** | monitor/outcomes 假数据无 MOCK 黄条；`ops.ts` 已有客户端未接线 | B8 | 跟 B6/B7 | `open` |
+| TD-12 | **P2** | monitor/outcomes 假数据无 MOCK 黄条；`ops.ts` 已有客户端未接线 | B8 | 跟 B6/B7 | `done` |
 
 ---
 
@@ -142,7 +142,9 @@ pytest tests/b_track/ -q
 
 **还债标准**：A0 真接后删除兜底或仅 `APP_ENV=test` 可见；业务路径只走 `get_industry_pack(...).forbidden_words()`。
 
-**关联**：进度 B4 `WAIT_FOR A0`。
+**状态（2026-07-17）**：`done` — 业务路径只走 registry；硬编码仅 `APP_ENV=test|testing`；`beauty_local` 包 `__init__` 懒加载 seed，避免 import 拉 sqlalchemy。
+
+**关联**：进度 B4；A0 已 done。
 
 ---
 
@@ -228,7 +230,8 @@ T-B1-05 五区渲染无致命错误   PASS  …
 3. TD-09  手测勾选落盘         （跟手验一起）
 4. TD-10  baseline 列（B6 第一刀，与 A7 约定）
 5. TD-03 / TD-04  与 A 对齐契约（联调周）
-6. TD-05 / TD-06 / TD-07       （契约终态或 A0 到时）
+6. TD-05 / TD-06               （契约终态）
+   TD-07 已 cleared（2026-07-17：禁词走 IndustryPack）
 7. TD-08 / TD-12             （B6/B7 自然消化）
 ```
 

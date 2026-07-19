@@ -4,8 +4,6 @@
 """
 from __future__ import annotations
 
-import json
-import os
 import re
 from typing import Any, Dict, List, Optional, Sequence
 
@@ -21,19 +19,15 @@ SEVEN_SEGMENT_KEYS = (
 )
 
 
-def _fixture_path() -> str:
-    here = os.path.dirname(os.path.abspath(__file__))
-    return os.path.normpath(
-        os.path.join(here, "..", "tests", "fixtures", "handoff_a_to_b", "enterprise_bundle.json")
-    )
+def _fixture_kb_facts() -> List[Dict[str, Any]]:
+    """MOCK：优先官方 kb_facts.json；否则 bundle。TODO(WAIT_FOR: A2) 真库。"""
+    from app.channel_weights import load_handoff_mock
+
+    return list(load_handoff_mock().get("kb_facts") or [])
 
 
 def load_fixture_kb_facts() -> List[Dict[str, Any]]:
-    """MOCK：从 handoff fixture 读 kb_facts。TODO(WAIT_FOR: A2)"""
-    path = _fixture_path()
-    with open(path, encoding="utf-8") as f:
-        data = json.load(f)
-    return list(data.get("kb_facts") or [])
+    return _fixture_kb_facts()
 
 
 def kb_fetch(

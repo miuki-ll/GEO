@@ -132,23 +132,33 @@ export interface MonitorResultItem {
   id: number
   pool_type: 'core' | 'probe'
   engine: string
+  engine_code?: string
   query: string
+  prompt?: string
   scenario_id?: number
   mentioned: boolean
+  brand_mentioned?: boolean
   mention_snippet?: string
   trust_score?: number
   position_rank?: number
+  baseline?: boolean
   run_at?: string
   batch_no?: string
 }
 
 export interface DashboardKpi {
+  mention_rate_t0?: number
+  mention_rate_t1?: number
+  delta_mention?: number
+  hallucination_rate?: number
   total_scenarios: number
   total_drafts_published: number
   avg_mention_rate: number
   avg_trust_score: number
   core_queries: number
   probe_discoveries: number
+  pending_review?: number
+  kb_facts_verified?: number
 }
 
 export interface MemberInvite {

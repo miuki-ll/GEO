@@ -43,6 +43,7 @@ class MonitorResultListParams(PaginationParams):
     engine: Optional[str] = None
     scenario_id: Optional[int] = None
     batch_no: Optional[str] = None
+    baseline: Optional[bool] = None  # True=T0 · False=T1
 
 
 class MonitorTriggerRequest(BaseSchema):

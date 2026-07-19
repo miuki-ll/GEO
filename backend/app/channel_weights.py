@@ -6,10 +6,9 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-# TODO(WAIT_FOR: A-fixture) official four-file handoff from Developer A
-_HANDOFF_BUNDLE = (
-    Path(__file__).resolve().parents[1] / "tests" / "fixtures" / "handoff_a_to_b" / "enterprise_bundle.json"
-)
+_HANDOFF_DIR = Path(__file__).resolve().parents[1] / "tests" / "fixtures" / "handoff_a_to_b"
+_OFFICIAL_FILES = ("enterprise.json", "diagnosis.json", "keywords.json", "kb_facts.json")
+_HANDOFF_BUNDLE = _HANDOFF_DIR / "enterprise_bundle.json"
 
 
 def compute_mixed_weight(model_weight: float, probe_weight: float) -> float:
@@ -18,9 +17,17 @@ def compute_mixed_weight(model_weight: float, probe_weight: float) -> float:
 
 
 def load_handoff_mock() -> Dict[str, Any]:
-    if not _HANDOFF_BUNDLE.is_file():
-        return {}
-    return json.loads(_HANDOFF_BUNDLE.read_text(encoding="utf-8"))
+    """优先官方四文件（A 已交付）；否则回落 enterprise_bundle.json。"""
+    if all((_HANDOFF_DIR / name).is_file() for name in _OFFICIAL_FILES):
+        merged: Dict[str, Any] = {}
+        for name in _OFFICIAL_FILES:
+            part = json.loads((_HANDOFF_DIR / name).read_text(encoding="utf-8"))
+            if isinstance(part, dict):
+                merged.update(part)
+        return merged
+    if _HANDOFF_BUNDLE.is_file():
+        return json.loads(_HANDOFF_BUNDLE.read_text(encoding="utf-8"))
+    return {}
 
 
 def build_five_zone_payload(handoff: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:

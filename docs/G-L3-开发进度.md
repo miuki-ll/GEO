@@ -34,13 +34,19 @@
 
 | 项 | 值 |
 |----|-----|
-| **更新日期** | 2026-07-17 |
-| **当前周** | W2（MOCK 主链已到发布） |
-| **A 当前任务** | **A0 done**；建议下一做 **A3**（LLM Gateway）· 见 A 侧 `docs/开发手册/` |
-| **B 当前任务** | **B5 doing**（SEMI 可测；AUTO MOCK；下一 B6） |
-| **全局阻塞** | **B1 真接 WAIT_FOR A7+A8**；**B3 真溯源 WAIT_FOR A2+A3**；**B5 AUTO 真发 WAIT_FOR A5**；**G4 WAIT_FOR A7**；**A0 已 done → B4 可接 IndustryPack 禁词** |
-| **下一联调 GATE** | G1（信封+JWT）；G2/G3/G4 仍不可绿（缺 A1/A5/A7 等） |
-| **备注** | 已 `merge origin/main`：拿到 A0 测试 + 四份 handoff fixture。B 轨：B0–B4 MOCK `done`；B5 doing；分支 `feat/b-track-b3-b5` |
+| **更新日期** | 2026-07-18 |
+| **当前周** | W3（B0–B7 MOCK 主链已通） |
+| **A 当前任务** | **A0 done**；建议下一做 **A3** |
+| **B 当前任务** | **B 轨 MOCK 主链收口**（B8 扫尾 / 等 A 真接） |
+| **全局阻塞** | **G4 真 Δ WAIT_FOR A7**；B5 AUTO WAIT_FOR A5；B1 真接 WAIT_FOR A7+A8 |
+| **下一联调 GATE** | G1；G4 需 A7 |
+| **备注** | B7 手验通过（效果舱 Δ 与监测一致）；分支 `feat/b-track-b3-b5` · 见下方 NOTIFY |
+
+#### NOTIFY → 开发者 A（读进度表即可，无需另开聊天）
+
+> **【NOTIFY · B → A · 2026-07-18】**  
+> B6 监测壳 + **B7 效果舱** 已验收：Core/Probe、T1、假 T0、Δ、funnel 可演示。真 T0 / G4 仍等 **A7**。  
+> （另：B4 闸门 + B5 发布 MOCK 可抽检；托管页真发仍等 **A5**。）
 
 ---
 
@@ -82,18 +88,18 @@
 
 | ID | 任务 | 状态 | 开始日 | 完成日 | 阻塞原因（WAIT_FOR） | 备注 / 交付物 / 测试 |
 |----|------|------|--------|--------|----------------------|----------------------|
-| B0 | 方案包/草稿页骨架（fixture mock） | `done` | 2026-07-16 | 2026-07-16 | 官方 fixture 已到（7.16）；可切官方四文件 | tests: B0 MOCK pass；五区 UI + `/strategy-pack` 骨架 |
-| B1 | 方案包：persona/scenario/权重 0.6+0.4 | `done` | 2026-07-16 | 2026-07-16 | 真接仍 `WAIT_FOR A7+A8`（另 A3/A0） | tests: B1 MOCK pass；权重 0.6+0.4；DB-first draft API |
+| B0 | 方案包/草稿页骨架（fixture mock） | `done` | 2026-07-16 | 2026-07-16 | | tests: B0 pass；官方四文件已接入 `load_handoff_mock()` |
+| B1 | 方案包：persona/scenario/权重 0.6+0.4 | `done` | 2026-07-16 | 2026-07-16 | 真接仍 `WAIT_FOR A7+A8`（另 A3） | tests: B1 MOCK pass；权重 0.6+0.4；handoff 读官方四文件 |
 | B2 | strategy-pack confirm | `done` | 2026-07-16 | 2026-07-16 | | tests: B2 pass（TD-01：service 级 T-B2-01～05）；confirm 落库 + 触发内容生成；debt: TD-01 cleared |
 | B3 | 内容工厂 + RAG 切片 | `done` | 2026-07-16 | 2026-07-17 | 真接 `WAIT_FOR A2+A3` · MOCK_OK | tests: B3 pass；7 段式 + `rag_slices`；`/content/drafts` 预览 |
-| B4 | 5 项机审 + 人闸门 + approval_log | `done` | 2026-07-16 | 2026-07-17 | **A0 已 done** → 可改接 `get_industry_pack().forbidden_words()`（待接线） | tests: B4 pass；debt: TD-04 cleared（五键 true=通过，含 forbidden_words）；reject→draft；`target_type=strategy_pack+content` |
-| B5 | 发布 AUTO + 小红书 SEMI | `doing` | 2026-07-17 | | 真发托管页 `WAIT_FOR A5`（SEMI 不阻塞） | tests: B5 MOCK pass（TD-01：含 `run_batch`）；SEMI 五字段；AUTO MOCK URL；debt: TD-01/02/10/11 见技术债表 |
-| B6 | Core/Probe + T1 + T0/T1 Δ + Engine 联动 | `todo` | | | `WAIT_FOR A7`（T0）；验 AC-13 时 `WAIT_FOR A9` | 下一开工项 |
-| B7 | 效果舱 Dashboard | `todo` | | | `WAIT_FOR A7`（T0 KPI） | 见手册 §11.4 |
-| B8 | 前端：方案包/草稿/发布/监测/效果舱 | `doing` | 2026-07-16 | | 真接继承上表 · `MOCK_OK` | 已接：`/strategy-pack` · `/content/drafts` · `/publish/tasks`（API/DB）；监测/效果舱未做 |
+| B4 | 5 项机审 + 人闸门 + approval_log | `done` | 2026-07-16 | 2026-07-17 | | tests: B4 pass；debt: TD-04/TD-07 cleared（禁词走 `get_industry_pack().forbidden_words()`）；reject→draft；`target_type=strategy_pack+content` |
+| B5 | 发布 AUTO + 小红书 SEMI | `done` | 2026-07-17 | 2026-07-18 | 真发托管页仍 `WAIT_FOR A5`（SEMI 不阻塞） | tests: B5 MOCK pass；手验通过；SEMI 五字段 + AUTO MOCK；NOTIFY A：可对闸门→发布抽检 |
+| B6 | Core/Probe + T1 + T0/T1 Δ + Engine 联动 | `done` | 2026-07-18 | 2026-07-18 | 真 T0/Δ 仍 `WAIT_FOR A7`；AC-13 `WAIT_FOR A9` | tests: B6 MOCK pass；手验通过；**已 NOTIFY A（见冲刺摘要）** |
+| B7 | 效果舱 Dashboard | `done` | 2026-07-18 | 2026-07-18 | 真 T0 KPI 仍 `WAIT_FOR A7` | tests: B7 MOCK pass；手验：效果舱 T0/T1/Δ 与监测一致 + funnel；**已 NOTIFY A** |
+| B8 | 前端：方案包/草稿/发布/监测/效果舱 | `done` | 2026-07-16 | 2026-07-18 | 真接继承各 Bx WAIT_FOR · `MOCK_OK` | 五页均已接 API（MOCK）；真接随 A 交付切换 |
 
 **B 过线**：勾选 scenario→机审→人闸门→AUTO+SEMI→效果舱见 Δ（详见 B 手册 §9）；**相关 Bx §11 测试均 PASS**  
-**B 过线状态**：`todo`（MOCK 主链至 B5；缺 B6/B7 与 A 侧真数据）
+**B 过线状态**：`todo`（MOCK 主链 B0–B8 已齐；真数据 / G5 仍等 A）
 
 ---
 
@@ -136,8 +142,8 @@
 | 周 | 结束日 | A 完成项 | B 完成项 | GATE | 风险 |
 |:--:|--------|---------|---------|------|------|
 | W1 | 2026-07-16 | （A 未更新） | B0–B2 MOCK；B3 开工 | G1? | 缺官方 fixture / JWT 真鉴权 |
-| W2 | （进行中） | | B3–B4 done；B5 doing；B8 部分 | | B5 AUTO / G3 等 A5；真接等 A7+A8 |
-| W3 | | | | | |
+| W2 | 2026-07-17 | （A 未大更） | B3–B5 done；禁词 TD-07；官方 fixture | | |
+| W3 | 2026-07-18 | | B6–B8 MOCK done；效果舱手验 | | G4 等 A7 |
 | W4 | | | | G2? | |
 | W5 | | | | | |
 | W6 | | | | G3/G4? | |
@@ -172,13 +178,13 @@
 | 轨 | todo | doing | blocked | done | 合计 |
 |----|:----:|:-----:|:-------:|:----:|:----:|
 | A（A0–A9） | 9 | 0 | 0 | 1 | 10 |
-| B（B0–B8） | 2 | 2 | 0 | 5 | 9 |
+| B（B0–B8） | 0 | 0 | 0 | 9 | 9 |
 | GATE（G1–G5） | 5 | 0 | 0 | 0 | 5 |
 | AC（01–15） | 15 | 0 | 0 | 0 | 15 |
 
 > 改状态后请同步更新本统计数字，便于一眼看进度。  
 > **A 统计（同步自 main）**：done = A0（1）；todo = A1–A9（9）。  
-> **B 统计**：done = B0–B4（5）；doing = B5 + B8（2）；todo = B6 + B7（2）。
+> **B 统计**：done = B0–B8（9）；doing/todo = 0（MOCK 档）。真接依赖仍写在各行 WAIT_FOR。
 
 ---
 

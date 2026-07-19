@@ -17,6 +17,8 @@ def test_tb4_forbidden_from_industry_pack():
     words, from_pack = resolve_forbidden_words("beauty_local")
     assert from_pack is True
     assert "根治" in words or "100%有效" in words
+    # TD-07：必须来自 IndustryPack，而非硬编码短列表
+    assert len(words) >= 10
 
 
 def test_tb4_forbidden_hit_fails():

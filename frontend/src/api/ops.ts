@@ -90,6 +90,15 @@ export function listProbe(params: PaginationParams = {}) {
 export function triggerMonitor(pool: 'core' | 'probe') {
   return request.post<any, ApiResponse<AgentTask>>(`${U}/monitor/trigger`, { pool })
 }
+export function getMonitorProfile() {
+  return request.get<any, ApiResponse<any>>(`${U}/monitor/profile`)
+}
+export function getMonitorDelta(pool: 'core' | 'probe' = 'core') {
+  return request.get<any, ApiResponse<any>>(`${U}/monitor/delta`, { params: { pool } })
+}
+export function seedMonitorT0() {
+  return request.post<any, ApiResponse<any>>(`${U}/monitor/seed-t0`)
+}
 
 // outcomes
 export function getDashboard(period: 'week' | 'month' | 'quarter' = 'week') {
