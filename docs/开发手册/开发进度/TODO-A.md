@@ -215,8 +215,8 @@
 | `backend/app/models/monitor.py` | MonitorResult（T0 写入目标，baseline 字段已有） | 🟢 已有 |
 | `backend/app/core/llm/gateway.py` | A3 gateway.chat() + gateway.search() | 🟢 已有 |
 
-- [ ] **[A7-1](./steps/A7-1.md)** — 🆕 `search_results` 独立表 + schema（SearchCitation/SearchResult*/SourceMap/DiagnosisFullResponse）+ migration
-- [ ] **[A7-2](./steps/A7-2.md)** — 🛠️ 重写 `diagnosis_service.py`：generate_probes → batch_search(Celery+并发5) → analyze → source_map → write_t0
+- [x] **[A7-1](./steps/A7-1.md)** — 🆕 `search_results` 独立表 + schema（SearchCitation/SearchResult*/SourceMap/DiagnosisFullResponse）+ migration
+- [x] **[A7-2](./steps/A7-2.md)** — 🛠️ 重写 `diagnosis_service.py`：generate_probes → batch_search(Celery+并发5) → analyze → source_map → write_t0
 - [ ] **[A7-3](./steps/A7-3.md)** — 🛠️ `diagnosis.py` 路由改造：POST /all 调 Celery + GET /{batch_no} 五区 JSON + SSE events
 - [ ] **[A7-4](./steps/A7-4.md)** — 🧪 新建 `test_a7_diagnosis.py`，5 条用例（mock LLM + search）
 - [ ] **🔍 A7 验收（审查者）** — 读执行记录 + git diff + 跑测试 → 更新进度表 + NOTIFY B（关键）
@@ -236,44 +236,36 @@
 ---
 
 ### A8 · 四源汇聚词库 + CRUD + generate ⚠️ 整模块缺失
+> **方案**：Keyword 保留现有字段 + 新增 layer/source/lbs_tags + Enterprise 加 raw_inputs 持久化 + Celery 异步 generate + 按 phrase 去重
 > **现状态**：`keywords` 表在 `models/strategy.py`，但无独立路由/service/schema
 > **涉及文件**：
 
 | 文件 | 作用 | 状态 |
 |------|------|:--:|
-| `backend/app/models/strategy.py` | Keyword model | 🟢 已有 |
-| `backend/app/api/v1/user/` | **keyword.py** — 路由 | 🔴 待建 |
-| `backend/app/service/` | **keyword_service.py** — 服务 | 🔴 待建 |
-| `backend/app/schemas/` | **keyword.py** — schema | 🔴 待建 |
+| `backend/app/models/strategy.py` | Keyword 加 layer/source/lbs_tags | 🛠️ 待改 |
+| `backend/app/models/auth.py` | Enterprise 加 raw_inputs | 🛠️ 待改 |
+| `backend/app/schemas/keyword.py` | KeywordCreate/Update/Response/ListParams/GenerateResponse/LayerSummary | 🔴 待建 |
+| `backend/app/service/keyword_service.py` | 四源汇聚 + LLM 四层分类 + CRUD | 🔴 待建 |
+| `backend/app/api/v1/user/keyword.py` | generate（Celery）+ CRUD + SSE events + 四层汇总 | 🔴 待建 |
+| `backend/app/tasks/all_tasks.py` | 新增 keyword_generate Celery 任务 | 🛠️ 待改 |
 | `backend/app/core/llm/gateway.py` | A3 gateway.chat() | 🟢 已有 |
-| `backend/app/service/diagnosis_service.py` | A7 探针问句（来源之一） | 🟡 依赖 A7 |
-| `backend/app/api/v1/user/onboarding.py` | raw_inputs（来源之一） | 🟡 依赖 A5 |
-| `frontend/src/views/knowledge-base/Index.vue` | 词库前端 | 🟡 骨架 |
-| `frontend/src/api/kb.ts` | KB API 封装 | 🟡 待加 keyword 接口 |
+| `backend/app/service/diagnosis_service.py` | A7 search_results（探针来源） | 🟡 依赖 A7 |
+| `backend/app/api/v1/user/onboarding.py` | A5 raw_inputs 写入 Enterprise | 🟡 依赖 A5 |
 
-- [ ] **A8-1** — `backend/app/schemas/keyword.py` — ⚠️ 新建 schema 文件：
-  - `KeywordCreate` / `KeywordUpdate` / `KeywordResponse` / `KeywordListParams`
-  - layer 枚举：`认知层|选型层|痛点层|场景层`
-  - source 枚举：`RawInputs|探针反推|SEO API|LLM生成|手动`
-- [ ] **A8-2** — `backend/app/service/keyword_service.py` — ⚠️ 新建 service，实现四源汇聚逻辑：
-  - `_from_raw_inputs(eid)` → 入驻 raw_inputs 拆词
-  - `_from_probes(eid)` → A7 探针问句提取关键词
-  - `_from_seo(eid)` → SEO API（MVP mock 假数据）
-  - `_from_llm(eid)` → `gateway.chat()` 补充长尾词
-- [ ] **A8-3** — `backend/app/service/keyword_service.py` — 实现 LLM 四层分类：
-  - 输入关键词列表 → `gateway.chat()` → 归入 认知/选型/痛点/场景
-  - 输出 `{ keyword, layer, source, lbs_tags }`
-- [ ] **A8-4** — `backend/app/api/v1/user/keyword.py` — ⚠️ 新建路由文件：
-  - `POST /user/keywords/generate` → 触发四源汇聚+LLM分类（异步 AgentTask）
-  - `GET /user/keywords` → 分页列表（筛选 layer/source）
-  - `POST /user/keywords` → 手动添加
-  - `PUT /user/keywords/{id}` → 编辑
-  - `DELETE /user/keywords/{id}` → 删除
-- [ ] **A8-5** — `backend/tests/a_track/test_a8_keywords.py` — ⚠️ 新建，验证 CRUD/四层/来源/租户隔离/generate
-- [ ] **A8-6** — `frontend/src/views/knowledge-base/Index.vue` — 新增词库四层面板（折叠/筛选/增删改/来源标签/LBS标签）
-- [ ] **A8-7** — `frontend/src/api/kb.ts` — 加 keyword API 封装（generate/list/create/update/delete）
-- [ ] **A8-8** — 验收：进度表 `A8 done`，发 **NOTIFY B（关键）**
-- [ ] **A8-9** — `backend/tests/fixtures/handoff_a_to_b/keywords.json` — 按真实字段形状刷新
+- [ ] **[A8-1](./steps/A8-1.md)** — 🛠️ Keyword 加 layer/source/lbs_tags + Enterprise 加 raw_inputs + schema 新建 + migration
+- [ ] **[A8-2](./steps/A8-2.md)** — 🆕 `keyword_service.py`：四源汇聚 + LLM 四层分类 + CRUD
+- [ ] **[A8-3](./steps/A8-3.md)** — 🆕 `keyword.py` 路由：POST /generate（Celery）+ CRUD + SSE events + 四层汇总
+- [ ] **[A8-4](./steps/A8-4.md)** — 🧪 新建 `test_a8_keywords.py`，6 条用例（mock LLM）
+- [ ] **🔍 A8 验收（审查者）** — 读执行记录 + git diff + 跑测试 → 更新进度表 + NOTIFY B（关键）
+
+### ✅ A8 已确定
+
+| # | 问题 | 决策 |
+|---|------|------|
+| 1 | Keyword 模型字段 | **保留现有 + 新增** layer/source/lbs_tags |
+| 2 | raw_inputs 持久化 | **Enterprise.raw_inputs**（A5 入驻时写入） |
+| 3 | generate 方式 | **Celery 异步** + SSE 进度 |
+| 4 | 去重策略 | 同 enterprise 内 **phrase 相同跳过** |
 
 ---
 
