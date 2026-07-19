@@ -112,6 +112,11 @@ class _BaseKBService:
             item.id,
             enterprise_id,
         )
+        # 只有 Fact 和 Faq 需要同步到 Faiss 向量库
+        if cls.MODEL in (KBFact, KBFaq):
+            from app.tasks.faiss_tasks import faiss_sync_item
+            _index_type = "kb_facts" if cls.MODEL is KBFact else "kb_faqs"
+            faiss_sync_item.delay(enterprise_id, _index_type, item.id, "create")
         return item
 
     @classmethod
@@ -140,6 +145,10 @@ class _BaseKBService:
         db.commit()
         db.refresh(item)
         Enterprise.touch_kb(db, enterprise_id)
+        if cls.MODEL in (KBFact, KBFaq):
+            from app.tasks.faiss_tasks import faiss_sync_item
+            _index_type = "kb_facts" if cls.MODEL is KBFact else "kb_faqs"
+            faiss_sync_item.delay(enterprise_id, _index_type, item.id, "update")
         return item
 
     @classmethod
@@ -156,6 +165,10 @@ class _BaseKBService:
             item_id,
             enterprise_id,
         )
+        if cls.MODEL in (KBFact, KBFaq):
+            from app.tasks.faiss_tasks import faiss_sync_item
+            _index_type = "kb_facts" if cls.MODEL is KBFact else "kb_faqs"
+            faiss_sync_item.delay(enterprise_id, _index_type, item_id, "delete")
 
     @classmethod
     def _post_load(cls, item):

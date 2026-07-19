@@ -1,9 +1,9 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Query, Path, BackgroundTasks
+from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
 from sqlalchemy.orm import Session
-from typing import Dict, Any
 
 from app.core.config import settings
 from app.core.db import get_db
+from app.core.logging_config import get_logger
 from app.api.common import get_current_active_user
 from app.models import User
 from app.schemas.business import (
@@ -11,94 +11,267 @@ from app.schemas.business import (
     DashboardData,
     AgentTaskCreate,
 )
+from app.schemas.onboarding import OnboardingRunRequest
 from app.service import (
-    DiagnosisService,
     StrategyPackService,
     ScenarioService,
-    ContentService,
     AgentTaskService,
     EnterpriseService,
 )
 
+logger = get_logger(__name__)
+
 router = APIRouter(prefix=f"{settings.API_V1_PREFIX}/user/onboarding", tags=["用户端·舱1·开店向导"])
 
 
-@router.post("/run", response_model=AgentTaskResponse, summary="A1.1 触发完整开店向导（懂我→出结果全链路 AgentTask")
+@router.post("/run", response_model=AgentTaskResponse, summary="触发开店向导：入驻表单 → LLM graph → 副作用写入")
 def onboarding_run(
+    body: OnboardingRunRequest,
     background_tasks: BackgroundTasks,
-    force: bool = Query(False, description="是否重建数据，忽略已存在"),
     user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db),
 ):
+    # 1. 创建 AgentTask
     task = AgentTaskService.create(
         db,
         user.enterprise_id,
         AgentTaskCreate(
             task_type="onboarding_pipeline",
-            graph_name="onboarding:diagnosis:strategy:production:review",
-            input_data={"force": force},
+            graph_name="onboarding",
+            input_data=body.model_dump(),
         ),
     )
 
-    def _bg():
+    # 2. 后台执行（async：runner.run_graph 为协程）
+    async def _bg():
         from app.core.db import SessionLocal
+        from app.agents.runner import run_graph
+
         s = SessionLocal()
         try:
-            _ = AgentTaskService.update_progress(s, user.enterprise_id, task.id, status="running", progress_pct=10, progress_message="STEP 1/4 运行全量诊断（痛点/画像/竞品")
-            diag = DiagnosisService.run_all(s, user.enterprise_id)
-            _ = AgentTaskService.update_progress(s, user.enterprise_id, task.id, progress_pct=25, progress_message="STEP 2/4 构建默认方案包草稿")
-            from app.schemas.business import StrategyPackCreate
-            sp = StrategyPackService.ensure_draft_default(s, user.enterprise_id, user.id)
-            _ = StrategyPackService.update(
-                s,
-                user.enterprise_id,
-                sp.id,
-                StrategyPackCreate(
-                    version=sp.version or "1.0",
-                    persona=diag["persona"],
-                    competitors=diag["competitors"],
-                    pain_points=diag["pain_points"],
-                    scenarios=diag["scenarios"],
-                    channels=diag["channels"],
-                    weights={"persona": 0.3, "competitors": 0.3, "channels": 0.2, "scenarios": 0.2},
-                ).model_dump(exclude_unset=True),
+            # 2a. 跑 graph（LLM 入驻流程）
+            state = await run_graph(
+                db=s,
+                enterprise_id=user.enterprise_id,
+                graph_name="onboarding",
+                input_data=body.model_dump(),
+                task_id=task.id,
             )
-            _ = AgentTaskService.update_progress(s, user.enterprise_id, task.id, progress_pct=45, progress_message="STEP 3/4 写入 Scenario（6+ 典型场景")
-            from app.schemas.business import ScenarioCreate
-            scenarios = diag["scenarios"] or []
-            for sc in scenarios:
-                try:
-                    ScenarioService.create(s, user.enterprise_id, ScenarioCreate(**sc))
-                except Exception as e:
-                    from app.core.logging_config import get_logger
-                    get_logger(__name__).warning("onboarding create scenario skip: %s", e)
-            _ = AgentTaskService.update_progress(s, user.enterprise_id, task.id, progress_pct=70, progress_message="STEP 4/4 为每个 Scenario 生成草稿+机器审")
-            items, _ = ScenarioService.list(
-                s,
-                user.enterprise_id,
-                type("P", (), {"channel": None, "skill": None, "status": None, "keyword": "", "page": 1, "page_size": 50})(),
-            )
-            for sc in items:
-                try:
-                    drafts = ContentService.generate_drafts_for_scenario(s, user.enterprise_id, sc.id, diag["persona"])
-                    for d in drafts:
-                        try:
-                            ContentService.run_machine_review(s, user.enterprise_id, d.id)
-                        except Exception:
-                            pass
-                except Exception as e:
-                    from app.core.logging_config import get_logger
-                    get_logger(__name__).warning("onboarding gen draft skip sc=%s err=%s", sc.id, e)
-            _ = AgentTaskService.complete_task(s, user.enterprise_id, task.id, output_data={"msg": "onboarding 完成", "scenarios": len(items), "diagnosis": diag})
+
+            # 2b. 副作用写入（A5-2：Brand/Store/Service/TargetEngine）
+            _write_side_effects(s, user.enterprise_id, body)
+
+            # 2c. KB 自动建库 + llms.txt（A5-3）
+            _bootstrap_kb(s, user.enterprise_id, body, state)
+
+            # 2d. touch kb
             EnterpriseService.touch_kb(s, user.enterprise_id)
+
         except Exception as e:
-            AgentTaskService.update_progress(s, user.enterprise_id, task.id, status="failed", progress_pct=100, error_message=str(e), completed_at="__ignore__")
-            _ = AgentTaskService.complete_task(s, user.enterprise_id, task.id, output_data={}, error=str(e))
+            AgentTaskService.complete_task(
+                s, user.enterprise_id, task.id,
+                output_data={}, error=str(e),
+            )
         finally:
             s.close()
 
     background_tasks.add_task(_bg)
     return task
+
+
+def _write_side_effects(db, enterprise_id: int, body: OnboardingRunRequest):
+    """写入入驻副作用：Brand / Store / Service / TargetEngine。"""
+    from app.models.auth import Brand, Store, Service
+    from app.models.strategy import TargetEngine
+
+    # Brand
+    if body.brand:
+        existing = db.query(Brand).filter(Brand.enterprise_id == enterprise_id).first()
+        if not existing:
+            db.add(Brand(
+                enterprise_id=enterprise_id,
+                name=body.brand.name,
+                differentiator=body.brand.differentiator,
+                slogan=body.brand.slogan,
+            ))
+
+    # Stores（先删旧的再插入，简单处理；后续 A9 可优化为 upsert）
+    db.query(Store).filter(Store.enterprise_id == enterprise_id).delete()
+    for st in body.stores:
+        db.add(Store(
+            enterprise_id=enterprise_id,
+            name=st.name,
+            city=st.city,
+            district=st.district,
+            address=st.address,
+            phone=st.phone,
+            business_hours=st.business_hours,
+            is_primary=st.is_primary,
+        ))
+
+    # Services
+    db.query(Service).filter(Service.enterprise_id == enterprise_id).delete()
+    for sv in body.services:
+        db.add(Service(
+            enterprise_id=enterprise_id,
+            name=sv.name,
+            description=sv.description,
+            category=sv.category,
+            price_hint=sv.price_hint,
+            duration_minutes=sv.duration_minutes,
+            status="active",
+        ))
+
+    db.commit()
+    logger.info(
+        "[onboarding] side effects written eid=%s brands=%s stores=%s services=%s",
+        enterprise_id,
+        1 if body.brand else 0,
+        len(body.stores),
+        len(body.services),
+    )
+
+    # TargetEngine（不删，追加不重复的）
+    existing_engines = {
+        e.code for e in db.query(TargetEngine.code).filter(TargetEngine.enabled == True).all()  # noqa: E712
+    }
+    for code in body.target_engines:
+        if code not in existing_engines:
+            # TargetEngine 不是租户表，全局共享。只记录，不创建新引擎。
+            # 用户的目标引擎选择存在 enterprises.settings 中。
+            pass
+
+    # 保存 target_engines 到 enterprise settings
+    from app.models import Enterprise
+    ent = db.query(Enterprise).filter(Enterprise.id == enterprise_id).first()
+    if ent:
+        settings_json = ent.settings or {}
+        settings_json["target_engines"] = body.target_engines
+        ent.settings = settings_json
+        db.commit()
+
+
+def _bootstrap_kb(db, enterprise_id: int, body: OnboardingRunRequest, graph_state: dict):
+    """入驻后自动建库：种子 Fact + 初始 Signal + thin_kb_check + llms.txt。"""
+    from app.service.kb_service import FactService, SignalService
+    from app.schemas.kb import KBFactCreate, KBSignalCreate
+    from app.service.kb_freshness_service import thin_kb_check
+    from app.models import Enterprise
+
+    # 1. 写入种子 Fact
+    fact_count = 0
+    for sf in (body.seed_facts or []):
+        try:
+            FactService.create(db, enterprise_id, KBFactCreate(
+                title=sf.title,
+                content=sf.content,
+                source_type="onboarding",
+                tags=["入驻种子"],
+                verified=False,
+            ))
+            fact_count += 1
+        except Exception:
+            pass
+
+    # 2. 提取初始 Signal
+    signal_count = 0
+    signals_to_create = []
+
+    # 从 raw_inputs 提取信号
+    if body.raw_inputs.strip():
+        signals_to_create.append(KBSignalCreate(
+            signal_type="raw_input",
+            content=body.raw_inputs[:2000],
+            source="onboarding",
+            status="pending",
+        ))
+
+    # 从 pain_points 提取信号
+    pain_points = graph_state.get("pain_points") or graph_state.get("output_data", {}).get("pain_points", [])
+    for pp in (pain_points or [])[:3]:
+        point_text = pp.get("point", "") if isinstance(pp, dict) else str(pp)
+        if point_text:
+            severity = pp.get("severity", 5) if isinstance(pp, dict) else 5
+            signals_to_create.append(KBSignalCreate(
+                signal_type="pain_point",
+                content=point_text[:1000],
+                source="diagnosis",
+                confidence=min(severity * 10, 100),
+                status="pending",
+            ))
+
+    for sig in signals_to_create[:10]:  # 最多 10 条信号
+        try:
+            SignalService.create(db, enterprise_id, sig)
+            signal_count += 1
+        except Exception:
+            pass
+
+    # 3. thin_kb_check 验证
+    thin_result = thin_kb_check(db, enterprise_id)
+
+    # 4. 生成 llms.txt 骨架
+    services = body.services or []
+    store = body.stores[0] if body.stores else None
+    brand_name = (body.brand.name if body.brand else None) or body.enterprise.name
+
+    lines = [
+        f"# {brand_name}",
+        f"",
+        f"## 品牌",
+        f"- 名称：{brand_name}",
+    ]
+    if body.brand and body.brand.differentiator:
+        lines.append(f"- 差异化：{body.brand.differentiator}")
+    if body.brand and body.brand.slogan:
+        lines.append(f"- Slogan：{body.brand.slogan}")
+
+    lines.append("")
+    lines.append("## 门店")
+    if store:
+        lines.append(f"- 名称：{store.name}")
+        if store.address:
+            lines.append(f"- 地址：{store.address}")
+        if store.city or store.district:
+            lines.append(f"- 区域：{store.city or ''}{store.district or ''}")
+        if store.business_hours:
+            lines.append(f"- 营业时间：{store.business_hours}")
+
+    lines.append("")
+    lines.append("## 服务项目")
+    for sv in services:
+        line = f"- {sv.name}"
+        if sv.description:
+            line += f"：{sv.description[:100]}"
+        lines.append(line)
+
+    lines.append("")
+    lines.append("## 资质")
+    lines.append(f"- 行业：{body.enterprise.industry}")
+    if body.enterprise.license_no:
+        lines.append(f"- 许可证：{body.enterprise.license_no}")
+
+    llms_txt = "\n".join(lines)
+
+    # 写入 enterprises.settings
+    ent = db.query(Enterprise).filter(Enterprise.id == enterprise_id).first()
+    if ent:
+        settings_json = dict(ent.settings or {})
+        settings_json["llms_txt"] = llms_txt
+        settings_json["hosted_page_url"] = f"/hosted/{enterprise_id}"  # 占位 URL，B5 替换
+        settings_json["onboarding"] = {
+            "completed_at": __import__("datetime").datetime.utcnow().isoformat(),
+            "thin_kb": thin_result,
+            "fact_count": fact_count,
+            "signal_count": signal_count,
+        }
+        ent.settings = settings_json
+        db.commit()
+
+    logger.info(
+        "[onboarding] kb bootstrap done eid=%s facts=%s signals=%s thin_kb=%s",
+        enterprise_id, fact_count, signal_count, thin_result.get("passed"),
+    )
 
 
 @router.get("/status/{task_id}", response_model=AgentTaskResponse)

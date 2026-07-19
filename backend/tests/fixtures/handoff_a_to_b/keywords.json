@@ -1,4 +1,15 @@
 {
+  "_meta": {
+    "file": "keywords.json",
+    "owner": "开发者A",
+    "purpose": "模拟四源汇聚词库（四层+来源标注+LBS标签），供B侧方案包E区/scenario候选使用",
+    "consumers": {
+      "B1": "方案包E区四层折叠展示 · scenario候选生成"
+    },
+    "layer_enum": ["认知层", "选型层", "痛点层", "场景层"],
+    "source_enum": ["RawInputs", "探针反推", "SEO API", "LLM生成", "手动"],
+    "note": "真接切换条件：A8完成，GET /api/v1/user/keywords可用"
+  },
   "keywords": [
     {
       "id": 1,

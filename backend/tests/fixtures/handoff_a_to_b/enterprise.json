@@ -1,4 +1,15 @@
 {
+  "_meta": {
+    "file": "enterprise.json",
+    "owner": "开发者A",
+    "purpose": "模拟入驻完成的店铺信息，供B侧方案包/发布/监测使用",
+    "consumers": {
+      "B1": "方案包上下文（brand/stores/services/target_customers）",
+      "B5": "托管页发布时取页面骨架/Schema约定",
+      "B6": "target_engines决定监测引擎范围"
+    },
+    "note": "本文件为MOCK数据，GATE G2（约W4）前B侧可用此fixture；真接后切换至真实API"
+  },
   "enterprise": {
     "id": 1,
     "name": "倾城美业",

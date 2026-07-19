@@ -1,4 +1,15 @@
 {
+  "_meta": {
+    "file": "diagnosis.json",
+    "owner": "开发者A",
+    "purpose": "模拟GEO诊断5项结果 + T0基线，供B侧算渠道权重/Δ/效果舱",
+    "consumers": {
+      "B1": "source_map.rankings/gaps → probe_weight渠道权重计算 · competitor_analysis → 竞品区",
+      "B6": "T0基线（baseline=true）→ 与B侧T1对齐算Δ",
+      "B7": "brand_mention_rate等KPI → 效果舱dashboard"
+    },
+    "note": "t0_baseline.sample_t0_records与B6监测结果同构，B可直接用于mock Δ计算。真接切换条件：A7完成"
+  },
   "diagnosis": {
     "id": 1,
     "enterprise_id": 1,

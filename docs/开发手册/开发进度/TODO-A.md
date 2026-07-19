@@ -170,10 +170,10 @@
 | `backend/app/schemas/agent.py` | Agent 相关 schema | 🟢 已有 |
 | `backend/app/service/kb_freshness_service.py` | thin_kb_check | 🟢 已有 |
 
-- [ ] **[A5-1](./steps/A5-1.md)** — 🛠️ 重写 `nodes.py`：4 个 LLM 节点（DIAGNOSE→PAIN→PERSONA→COMPETITOR）+ 并行 search 兜底
-- [ ] **[A5-2](./steps/A5-2.md)** — 🛠️ `onboarding.py` 改造：新 `OnboardingRunRequest` schema + 切 `runner.run_graph()` + Brand/Store/Service 副作用写入
-- [ ] **[A5-3](./steps/A5-3.md)** — 🛠️ KB 自动建库：seed_facts → KBFact/KBSignal + thin_kb_check + llms.txt 骨架
-- [ ] **[A5-4](./steps/A5-4.md)** — 🧪 新建 `test_a5_onboarding.py`，6 条用例（mock LLM 全流程）
+- [x] **[A5-1](./steps/A5-1.md)** — 🛠️ 重写 `nodes.py`：4 个 LLM 节点（DIAGNOSE→PAIN→PERSONA→COMPETITOR）+ 并行 search 兜底
+- [x] **[A5-2](./steps/A5-2.md)** — 🛠️ `onboarding.py` 改造：新 `OnboardingRunRequest` schema + 切 `runner.run_graph()` + Brand/Store/Service 副作用写入
+- [x] **[A5-3](./steps/A5-3.md)** — 🛠️ KB 自动建库：seed_facts → KBFact/KBSignal + thin_kb_check + llms.txt 骨架
+- [x] **[A5-4](./steps/A5-4.md)** — 🧪 新建 `test_a5_onboarding.py`，6 条用例（mock LLM 全流程）
 
 ### A6 · onboarding SSE 进度
 > **现状态**：`nodes.py` 空壳已有 progress_pct 赋值，但 SSE 端点需实现

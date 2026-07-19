@@ -1,4 +1,15 @@
 {
+  "_meta": {
+    "file": "kb_facts.json",
+    "owner": "开发者A",
+    "purpose": "模拟知识库事实数据，供B侧内容工厂fact_refs溯源+RAG切片机审",
+    "consumers": {
+      "B3": "fact_refs引用kb_facts.id → RAG切片生成",
+      "B4": "fact_verify机审 → 比对草稿content与kb_facts是否一致"
+    },
+    "categories": ["price", "faq", "service_detail", "store_info", "credential", "product_info"],
+    "note": "真接切换条件：A2完成，GET /api/v1/user/kb/facts可用。fact_refs必须是真实kb_facts.id"
+  },
   "kb_facts": [
     {
       "id": 1,

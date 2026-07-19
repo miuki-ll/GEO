@@ -1,3 +1,9 @@
+"""
+GEO 后端入口（大门）
+
+职责：组装 FastAPI 应用 — CORS、异常处理、生命周期、路由挂载。
+业务路由不在这里一条条挂，统一收进 v1_router（见 app/api/v1/__init__.py）。
+"""
 from contextlib import asynccontextmanager
 from typing import Optional
 
@@ -14,21 +20,25 @@ logger = get_logger(__name__)
 
 
 def setup_cors(app: FastAPI) -> None:
+    """配置 CORS（跨域资源共享）— 允许前端域名调后端 API。"""
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=settings.CORS_ORIGINS,
+        allow_origins=settings.CORS_ORIGINS,  # 白名单来自配置，非 "*"
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
-        expose_headers=["X-Request-ID"],
+        expose_headers=["X-Request-ID"],  # 前端可读到请求追踪 ID
     )
 
 
 def setup_exception_handlers(app: FastAPI) -> None:
+    """统一异常响应格式，避免前端拿到五花八门的错误结构。"""
+
     @app.exception_handler(RequestValidationError)
     async def validation_exception_handler(
         request: Request, exc: RequestValidationError
     ):
+        # 请求体/参数校验失败 → 422，附带字段级错误列表
         errors = []
         for err in exc.errors():
             loc = ".".join(str(p) for p in err.get("loc", []))
@@ -44,6 +54,7 @@ def setup_exception_handlers(app: FastAPI) -> None:
 
     @app.exception_handler(Exception)
     async def base_exception_handler(request: Request, exc: Exception):
+        # 未捕获异常 → 500；生产环境不把异常细节暴露给客户端
         logger.exception("Unhandled exception on %s: %s", request.url, exc)
         return JSONResponse(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -72,6 +83,10 @@ async def lifespan(app: FastAPI):
 
 
 def create_app() -> FastAPI:
+    """
+    应用工厂（factory）— 组装完整 app 后返回。
+    好处：测试时可多次 create_app()，不必依赖全局单例细节。
+    """
     app = FastAPI(
         title=settings.APP_NAME,
         description="GEO 多企业 AI 可见度运营平台 — 后端 API",
@@ -82,9 +97,11 @@ def create_app() -> FastAPI:
     setup_cors(app)
     setup_exception_handlers(app)
 
+    # 健康检查（不进版本前缀）+ 业务 API v1 总路由
     app.include_router(health_router, prefix="", tags=["系统"])
-    app.include_router(v1_router)
+    app.include_router(v1_router)  # 聚合点：app/api/v1/__init__.py
 
+    # MCP（Model Context Protocol，给 AI 工具调用的接口）— 配置开关控制
     if settings.MCP_ENABLED:
         from mcp_server.http_router import router as mcp_http_router
 
@@ -92,6 +109,7 @@ def create_app() -> FastAPI:
 
     @app.middleware("http")
     async def add_request_id(request: Request, call_next):
+        # 每个请求生成短 ID，写入 request.state 和响应头，方便日志串联排查
         import uuid as _uuid
 
         rid = _uuid.uuid4().hex[:12]
@@ -103,4 +121,5 @@ def create_app() -> FastAPI:
     return app
 
 
+# Uvicorn / 进程入口加载的就是这个 app 实例
 app = create_app()

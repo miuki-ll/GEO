@@ -1,3 +1,9 @@
+# =============================================================================
+# LLM 厂商适配器实现
+# 包含 OpenAI 兼容协议的通用适配器（Doubao / DeepSeek / Kimi 复用）
+# 以及文心一言独立适配器（使用百度自有 API 协议）
+# =============================================================================
+
 import json
 import time
 from typing import Optional, List
@@ -21,13 +27,17 @@ logger = get_logger(__name__)
 
 
 class _OpenAICompatAdapter(BaseEngineAdapter):
+    """OpenAI 兼容协议通用适配器，Doubao / DeepSeek / Kimi 均复用此实现"""
+
     def _prepare_headers(self) -> dict:
+        """构造 HTTP 请求头（Bearer 认证 + JSON Content-Type）"""
         return {
             "Authorization": f"Bearer {self.api_key}",
             "Content-Type": "application/json",
         }
 
     def _to_body(self, request: LLMRequest) -> dict:
+        """将 LLMRequest 转换为 OpenAI 兼容的 JSON 请求体"""
         model = self.resolve_model(request.model)
         messages: List[dict] = []
         for m in request.messages:
@@ -51,6 +61,7 @@ class _OpenAICompatAdapter(BaseEngineAdapter):
         return body
 
     async def chat(self, request: LLMRequest) -> LLMResponse:
+        """执行 OpenAI 兼容协议的聊天补全请求"""
         url = f"{self.base_url.rstrip('/')}/chat/completions"
         model = self.resolve_model(request.model)
         timeout = request.timeout or self.timeout
@@ -103,6 +114,7 @@ class _OpenAICompatAdapter(BaseEngineAdapter):
         retry=retry_if_exception_type((httpx.HTTPStatusError, httpx.ConnectError, httpx.TimeoutException)),
     )
     async def _do_request(self, url, headers, body, timeout, retries):
+        """发送 HTTP POST 请求，带自动重试（指数退避，最多 3 次）"""
         async with httpx.AsyncClient(timeout=timeout) as client:
             r = await client.post(url, headers=headers, json=body)
             if r.status_code >= 400:
@@ -116,6 +128,7 @@ class _OpenAICompatAdapter(BaseEngineAdapter):
             return r.json()
 
     async def embed(self, request: EmbeddingRequest) -> EmbeddingResponse:
+        """执行 OpenAI 兼容协议的文本向量化请求"""
         url = f"{self.base_url.rstrip('/')}/embeddings"
         model = self.resolve_model(request.model)
         try:
@@ -150,6 +163,8 @@ class _OpenAICompatAdapter(BaseEngineAdapter):
 
 
 class DoubaoAdapter(_OpenAICompatAdapter):
+    """豆包（字节跳动）适配器，使用 OpenAI 兼容协议"""
+
     ENGINE_CODE = "doubao"
     NAME = "豆包"
 
@@ -158,8 +173,95 @@ class DoubaoAdapter(_OpenAICompatAdapter):
         self.base_url = settings.LLM_DOUBAO_BASE_URL
         self.default_model = getattr(settings, "LLM_DOUBAO_MODEL", "doubao-pro-32k")
 
+    async def search(self, request: "SearchRequest") -> "SearchResponse":
+        """豆包联网搜索 — 调用 Responses API + web_search tool"""
+        from app.core.llm.schemas import SearchRequest, SearchResponse, SearchCitation, LLMUsage
+
+        # 联网搜索必须用模型名，不能用 chat 的 default_model / ep-xxx
+        model = request.model or "doubao-seed-2-1-pro-260628"
+        url = f"{self.base_url.rstrip('/')}/responses"
+        timeout = request.timeout or 200  # 联网搜索慢，默认 200s
+
+        # 构造请求体 — Responses API 格式，不是 Chat Completions 格式
+        body = {
+            "model": model,
+            "tools": [{"type": "web_search", "max_keyword": request.max_keywords, "limit": request.limit}],
+            "input": [{"role": "user", "content": request.query}],
+        }
+
+        t0 = time.perf_counter()
+        try:
+            async with httpx.AsyncClient(timeout=timeout) as client:
+                r = await client.post(
+                    url,
+                    headers=self._prepare_headers(),
+                    json=body,
+                )
+                if r.status_code >= 400:
+                    try:
+                        detail = r.json()
+                    except Exception:
+                        detail = r.text
+                    raise httpx.HTTPStatusError(
+                        f"HTTP {r.status_code}: {detail}",
+                        request=r.request,
+                        response=r,
+                    )
+                payload = r.json()
+
+            # 解析回答文本
+            answer_parts: List[str] = []
+            citations: List[SearchCitation] = []
+
+            for output in payload.get("output", []):
+                for content in output.get("content", []):
+                    if content.get("text"):
+                        answer_parts.append(content["text"])
+                    for ann in content.get("annotations", []):
+                        if ann.get("type") == "url_citation":
+                            citations.append(SearchCitation(
+                                url=ann.get("url", ""),
+                                title=ann.get("title", ""),
+                                summary=ann.get("summary", ""),
+                                site_name=ann.get("site_name", ""),
+                                publish_time=ann.get("publish_time"),
+                            ))
+
+            answer = "\n\n".join(answer_parts)
+            usage_raw = payload.get("usage", {}) or {}
+            latency_ms = int((time.perf_counter() - t0) * 1000)
+
+            return SearchResponse(
+                engine=self.ENGINE_CODE,
+                model=payload.get("model", model),
+                answer=answer,
+                citations=citations,
+                usage=LLMUsage(
+                    prompt_tokens=usage_raw.get("input_tokens", 0),
+                    completion_tokens=usage_raw.get("output_tokens", 0),
+                    total_tokens=usage_raw.get("total_tokens", 0),
+                ),
+                latency_ms=latency_ms,
+                trace_id=request.trace_id,
+                extra=request.extra,
+            )
+
+        except Exception as e:
+            latency_ms = int((time.perf_counter() - t0) * 1000)
+            logger.warning("[doubao] search failed query=%s err=%s", request.query[:50], e)
+            return SearchResponse(
+                engine=self.ENGINE_CODE,
+                model=model,
+                error=str(e),
+                latency_ms=latency_ms,
+                trace_id=request.trace_id,
+                extra=request.extra,
+            )
+
 
 class DeepseekAdapter(_OpenAICompatAdapter):
+    """DeepSeek 适配器，使用 OpenAI 兼容协议"""
+
     ENGINE_CODE = "deepseek"
     NAME = "DeepSeek"
 
@@ -170,6 +272,8 @@ class DeepseekAdapter(_OpenAICompatAdapter):
 
 
 class KimiAdapter(_OpenAICompatAdapter):
+    """Kimi（月之暗面）适配器，使用 OpenAI 兼容协议"""
+
     ENGINE_CODE = "kimi"
     NAME = "Kimi (月之暗面)"
 
@@ -180,6 +284,8 @@ class KimiAdapter(_OpenAICompatAdapter):
 
 
 class WenxinAdapter(BaseEngineAdapter):
+    """文心一言（百度）适配器，使用百度自有 API 协议（非 OpenAI 兼容）"""
+
     ENGINE_CODE = "wenxin"
     NAME = "文心一言"
 
@@ -191,6 +297,7 @@ class WenxinAdapter(BaseEngineAdapter):
         self._token_cache: Optional[tuple] = None
 
     async def _get_access_token(self) -> str:
+        """获取百度 OAuth 2.0 access_token，带缓存，过期前 5 分钟自动刷新"""
         if self._token_cache and self._token_cache[1] > time.time():
             return self._token_cache[0]
         url = f"{self.base_url}/oauth/2.0/token"
@@ -209,6 +316,7 @@ class WenxinAdapter(BaseEngineAdapter):
         return token
 
     def _model_path(self, model: str) -> str:
+        """将模型别名映射为百度 API 实际模型路径"""
         mapping = {
             "ernie-3.5": "ernie-3.5-128k",
             "ernie-4": "ernie-4.0-8k",
@@ -217,6 +325,7 @@ class WenxinAdapter(BaseEngineAdapter):
         return mapping.get(model, model)
 
     async def chat(self, request: LLMRequest) -> LLMResponse:
+        """执行文心一言聊天补全请求（百度自有协议）"""
         model = self.resolve_model(request.model)
         t0 = time.perf_counter()
         try:
@@ -270,6 +379,7 @@ class WenxinAdapter(BaseEngineAdapter):
             )
 
     async def embed(self, request: EmbeddingRequest) -> EmbeddingResponse:
+        """执行文心一言文本向量化请求（百度自有协议，逐条请求）"""
         model = self.resolve_model(request.model)
         try:
             token = await self._get_access_token()
