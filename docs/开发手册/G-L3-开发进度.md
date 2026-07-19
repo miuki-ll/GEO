@@ -62,9 +62,9 @@
 | A2 | KB CRUD（Fact/FAQ/Signal） | `done` | 2026-07-19 | 2026-07-19 | | tests: A2 pass · 已通知 B → fact_refs |
 | A3 | LLM Gateway × 4 Adapter | `done` | 2026-07-19 | 2026-07-19 | | tests: A3 pass · 已通知 B → B1/B3 |
 | A4 | Faiss per-tenant | `done` | 2026-07-19 | 2026-07-19 | | tests: A4 pass · FaissService add/search/delete/rebuild |
-| A5 | 开店向导：建库 + Schema + llms.txt | `doing` | 2026-07-19 | | | step 文件已写，待 Cursor 执行 |
-| A6 | onboarding SSE 进度 | `todo` | | | | |
-| A7 | 诊断 5 项 + 写 T0 | `todo` | | | | NOTIFY B → B1/B6 |
+| A5 | 开店向导：建库 + Schema + llms.txt | `done` | 2026-07-19 | 2026-07-19 | | tests: A5 pass · 已通知 B → G3（禁词来自 A0，托管页 URL 骨架就绪） |
+| A6 | onboarding SSE 进度 | `done` | 2026-07-19 | 2026-07-19 | | tests: A6 pass · Redis pub/sub SSE 实时推送 |
+| A7 | 诊断 5 项 + 写 T0 | `done` | 2026-07-19 | 2026-07-19 | | tests: A7 pass (50 total A0-A8) · 已 NOTIFY B → B1/B6（真 T0 可接）|
 | A8 | 四源汇聚词库 + CRUD | `todo` | | | | NOTIFY B → B1 |
 | A9 | 前端：登录/入驻/KB/设置（主攻 AI） | `todo` | | | 验 AC-13 时 `WAIT_FOR B6` | |
 
@@ -179,7 +179,7 @@
 
 | 轨 | todo | doing | blocked | done | 合计 |
 |----|:----:|:-----:|:-------:|:----:|:----:|
-| A（A0–A9） | 4 | 1 | 0 | 5 | 10 |
+| A（A0–A9） | 2 | 0 | 0 | 7 | 10 |
 | B（B0–B8） | 0 | 0 | 0 | 9 | 9 |
 | GATE（G1–G5） | 4 | 0 | 0 | 0 | 5（G1=`ready`） |
 | AC（01–15） | 15 | 0 | 0 | 0 | 15 |
